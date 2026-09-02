@@ -379,6 +379,20 @@ function updateUserInterface() {
 }
 
 // --- NAVIGATION & VIEW SWITCHING ---
+// View changes are reflected in the History API (pushState/replaceState +
+// a popstate listener) so that the browser Back/Forward buttons move
+// between in-app views instead of leaving the site. Every top-level view
+// (view-landing, view-dashboard, view-wizard, view-studio, view-pricing,
+// view-profile) gets its own history entry, keyed by a `folioView` field
+// on history.state and mirrored in the URL hash for reload/deep-link safety.
+const FOLIO_VALID_VIEWS = [
+  'view-landing', 'view-dashboard', 'view-wizard',
+  'view-studio', 'view-pricing', 'view-profile',
+];
+// Views that require a signed-in user - guards a direct/reloaded #hash
+// link the same way the nav tabs are already hidden for logged-out users.
+const FOLIO_AUTH_VIEWS = ['view-dashboard', 'view-studio', 'view-profile'];
+
 function initNavigation() {
   const navTabs = document.querySelectorAll('.nav-tab');
   const brandBtn = document.getElementById('nav-brand-btn');
@@ -411,11 +425,50 @@ function initNavigation() {
   if (btnHeroWizard) {
     btnHeroWizard.addEventListener('click', () => switchView('view-wizard'));
   }
+
+  initHistoryNavigation();
 }
 
-function switchView(viewId) {
+// Establishes the initial history entry and wires up Back/Forward handling.
+function initHistoryNavigation() {
+  // The markup always starts on view-landing (see index.html), so the very
+  // first history entry should describe that, not be state-less. Using
+  // replaceState (not pushState) here means this doesn't add an extra step
+  // Back has to move through - it just labels the entry the browser already
+  // created when the page loaded.
+  let initialView = getViewIdFromLocation() || 'view-landing';
+  if (FOLIO_AUTH_VIEWS.includes(initialView) && !state.token) {
+    initialView = 'view-landing';
+  }
+  history.replaceState({ folioView: initialView }, '', `#${initialView}`);
+  if (initialView !== 'view-landing') {
+    // Reflect a deep-linked/reloaded hash (e.g. reloading on #view-pricing)
+    // in the actual UI, without pushing a new history entry for it.
+    switchView(initialView, { pushState: false });
+  }
+
+  window.addEventListener('popstate', (event) => {
+    let viewId = (event.state && event.state.folioView) || getViewIdFromLocation() || 'view-landing';
+    if (FOLIO_AUTH_VIEWS.includes(viewId) && !state.token) {
+      viewId = 'view-landing';
+    }
+    switchView(viewId, { pushState: false });
+  });
+}
+
+function getViewIdFromLocation() {
+  const hash = window.location.hash.replace('#', '');
+  return FOLIO_VALID_VIEWS.includes(hash) ? hash : null;
+}
+
+function switchView(viewId, options = {}) {
+  const { pushState = true } = options;
+
+  if (!FOLIO_VALID_VIEWS.includes(viewId)) return;
+
   const panes = document.querySelectorAll('.view-pane');
   const navTabs = document.querySelectorAll('.nav-tab');
+  const currentView = document.querySelector('.view-pane.active')?.id;
 
   panes.forEach(pane => pane.classList.remove('active'));
   navTabs.forEach(tab => tab.classList.remove('active'));
@@ -425,6 +478,14 @@ function switchView(viewId) {
 
   if (activePane) activePane.classList.add('active');
   if (activeTab) activeTab.classList.add('active');
+
+  // Record the navigation in browser history so Back/Forward can retrace
+  // it. Skip this when we're already responding to a popstate event
+  // (pushState: false), and skip no-op re-selections of the current view
+  // so clicking the same nav tab twice doesn't pile up duplicate entries.
+  if (pushState && viewId !== currentView) {
+    history.pushState({ folioView: viewId }, '', `#${viewId}`);
+  }
 
   if (viewId === 'view-dashboard') {
     loadDashboardResumes();
@@ -1000,7 +1061,10 @@ async function handleSocialAuthRedirect() {
   params.delete('social_auth');
   params.delete('social_auth_error');
   const cleanUrl = window.location.pathname + (params.toString() ? `?${params}` : '') + window.location.hash;
-  window.history.replaceState({}, document.title, cleanUrl);
+  // Preserve the existing history.state (in particular `folioView`, set up
+  // by initHistoryNavigation) - this call is only meant to strip the
+  // one-time auth params from the URL, not to reset navigation state.
+  window.history.replaceState(window.history.state || {}, document.title, cleanUrl);
 
   if (error) {
     showToast(error, 'error');
