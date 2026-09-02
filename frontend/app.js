@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDrawer();
   initPricing();
   initSimulatedAts();
+  initProfile();
 
   checkBackendHealth();
   // Template metadata (layout/accent/font per template) is needed before
@@ -259,13 +260,23 @@ async function checkAuthSession() {
   updateUserInterface();
 }
 
+function getUserInitials(name) {
+  if (!name || typeof name !== 'string') return 'U';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'U';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 function updateUserInterface() {
   const loggedOutBox = document.getElementById('auth-logged-out');
   const loggedInBox = document.getElementById('auth-logged-in');
   const dashTab = document.getElementById('nav-dashboard-tab');
   const studioTab = document.getElementById('nav-studio-tab');
+  const profileTab = document.getElementById('nav-profile-tab');
   const planPill = document.getElementById('nav-plan-pill');
   const nameLbl = document.getElementById('user-display-name');
+  const avatarInitials = document.getElementById('user-avatar-initials');
   const dashGreeting = document.getElementById('dash-greeting');
   const statUserPlan = document.getElementById('stat-user-plan');
   const statAts = document.getElementById('stat-ats-remaining');
@@ -282,7 +293,9 @@ function updateUserInterface() {
     if (loggedOutBox) loggedOutBox.style.display = 'none';
     if (loggedInBox) loggedInBox.style.display = 'flex';
     if (dashTab) dashTab.style.display = 'inline-block';
+    if (profileTab) profileTab.style.display = 'inline-block';
     if (nameLbl) nameLbl.textContent = displayName;
+    if (avatarInitials) avatarInitials.textContent = getUserInitials(displayName);
 
     // 1. Dashboard Greeting with actual user's name
     if (dashGreeting) {
@@ -354,6 +367,7 @@ function updateUserInterface() {
     if (loggedInBox) loggedInBox.style.display = 'none';
     if (dashTab) dashTab.style.display = 'none';
     if (studioTab) studioTab.style.display = 'none';
+    if (profileTab) profileTab.style.display = 'none';
     if (dashGreeting) dashGreeting.textContent = 'Welcome back, Developer';
     if (statUserPlan) statUserPlan.textContent = 'Free';
     if (statAts) statAts.textContent = '3';
@@ -418,6 +432,9 @@ function switchView(viewId) {
   if (viewId === 'view-studio') {
     renderStudioFormValues();
     renderPaperCanvas();
+  }
+  if (viewId === 'view-profile') {
+    loadUserProfile();
   }
 }
 
@@ -953,22 +970,22 @@ function _applySocialAuthSession(data, providerLabel) {
   switchView('view-dashboard');
 }
 
-// --- GITHUB / LINKEDIN SIGN-IN (redirect-based OAuth) ---
-// Unlike Google (client-side ID-token verification), GitHub and LinkedIn
-// don't offer a JS SDK for this, so the button does a full browser
-// navigation to the backend, which redirects to the provider, then back.
+// --- GITHUB SIGN-IN (redirect-based OAuth) ---
+// Unlike Google (client-side ID-token verification), GitHub doesn't offer
+// a JS SDK for this, so the button does a full browser navigation to the
+// backend, which redirects to the provider, then back.
 function initSocialAuthButtons() {
   document.querySelectorAll('.social-auth-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      const provider = btn.dataset.provider; // 'github' | 'linkedin'
+      const provider = btn.dataset.provider; // 'github'
       if (!provider) return;
       window.location.href = `${API_BASE}/auth/${provider}`;
     });
   });
 }
 
-// Called once on page load. After GitHub/LinkedIn redirect back, the URL
+// Called once on page load. After GitHub redirect back, the URL
 // carries either ?social_auth=<one-time code> (success) or
 // ?social_auth_error=<message> (cancelled/failed) - see auth_routes.py.
 async function handleSocialAuthRedirect() {
@@ -2710,7 +2727,7 @@ function openPaymentModal() {
   // Render user uploaded PhonePe QR Code for UPI
   const qrBox = document.getElementById('dynamic-qr-box');
   if (qrBox) {
-    qrBox.innerHTML = `<img src="/images/upi_qr_code.jpg" alt="PhonePe UPI Scan & Pay QR Code" class="upi-qr-image">`;
+    qrBox.innerHTML = `<img src="/images/upi_qr1.jpeg" alt="PhonePe UPI Scan & Pay QR Code" class="upi-qr-image">`;
   }
 
   modal.classList.add('active');
@@ -2960,3 +2977,182 @@ function initSimulatedAts() {
     if (insightsList) insightsList.innerHTML = insights.join('') || '<div class="insight-chip">Add strong verbs & numbers to improve grade</div>';
   });
 }
+
+// --- USER PROFILE & CAREER SETTINGS ---
+async function loadUserProfile() {
+  if (!state.token) return;
+  const res = await apiCall('/profile', 'GET');
+  if (res && res.success && res.data) {
+    state.user = res.data.user;
+    localStorage.setItem('folio_user_profile', JSON.stringify(state.user));
+    updateUserInterface();
+    renderUserProfile(res.data.user, res.data.stats);
+  } else {
+    // Fallback if offline or server error
+    renderUserProfile(state.user || {}, { total_resumes: state.resumes ? state.resumes.length : 0 });
+  }
+}
+
+function renderUserProfile(user, stats = {}) {
+  if (!user) return;
+  const name = user.name || user.email?.split('@')[0] || 'User';
+  const initials = getUserInitials(name);
+
+  // Profile Header
+  const avatarCircle = document.getElementById('prof-avatar-circle');
+  const avatarText = document.getElementById('prof-avatar-text');
+  const fullName = document.getElementById('prof-full-name');
+  const headline = document.getElementById('prof-headline');
+  const email = document.getElementById('prof-email');
+  const planPill = document.getElementById('prof-plan-pill');
+  const authProvider = document.getElementById('prof-auth-provider');
+
+  if (avatarText) avatarText.textContent = initials;
+  if (fullName) fullName.textContent = name;
+  if (headline) headline.textContent = user.headline || 'Professional Headline Not Set';
+  if (email) email.textContent = user.email || '';
+  if (planPill) {
+    const isPremium = user.plan === 'premium';
+    planPill.textContent = isPremium ? '⭐ Premium Pro' : 'Free Tier';
+    planPill.className = `plan-pill ${user.plan || 'free'}`;
+  }
+  if (authProvider) {
+    const providerName = user.auth_provider === 'google' ? 'Google Account' : (user.auth_provider === 'github' ? 'GitHub Account' : 'Password Account');
+    authProvider.textContent = providerName;
+  }
+
+  // Personal Information
+  const phone = document.getElementById('prof-phone');
+  const location = document.getElementById('prof-location');
+  const headlineVal = document.getElementById('prof-headline-val');
+
+  if (phone) phone.textContent = user.phone || 'Not specified';
+  if (location) location.textContent = user.location || 'Not specified';
+  if (headlineVal) headlineVal.textContent = user.headline || 'Not specified';
+
+  // AI Career Profile
+  const currentStatus = document.getElementById('prof-current-status');
+  const targetRole = document.getElementById('prof-target-role');
+  const yearsExp = document.getElementById('prof-years-exp');
+  const prefLocation = document.getElementById('prof-pref-location');
+  const careerGoal = document.getElementById('prof-career-goal');
+
+  if (currentStatus) currentStatus.textContent = user.current_status || 'Not specified';
+  if (targetRole) targetRole.textContent = user.target_role || 'Not specified';
+  if (yearsExp) yearsExp.textContent = user.years_of_experience || 'Not specified';
+  if (prefLocation) prefLocation.textContent = user.preferred_location || 'Not specified';
+  if (careerGoal) careerGoal.textContent = user.career_goal || 'Not specified';
+
+  // Activity Stats
+  const statResumes = document.getElementById('prof-stat-resumes');
+  if (statResumes) {
+    statResumes.textContent = typeof stats.total_resumes === 'number' ? stats.total_resumes : (state.resumes ? state.resumes.length : 0);
+  }
+
+  // Connected Accounts
+  updateAccountStatusElement('prof-status-google', !!user.google_connected, 'google');
+  updateAccountStatusElement('prof-status-github', !!user.github_connected, 'github');
+}
+
+function updateAccountStatusElement(containerId, isConnected, provider) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (isConnected) {
+    container.innerHTML = `<span class="status-badge connected">Connected ✓</span>`;
+  } else {
+    if (provider === 'github') {
+      container.innerHTML = `<button type="button" class="btn btn-xs btn-outline social-auth-btn" data-provider="github" style="cursor:pointer;">Connect GitHub</button>`;
+      const btn = container.querySelector('.social-auth-btn');
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.location.href = `${API_BASE}/auth/github`;
+        });
+      }
+    } else {
+      container.innerHTML = `<span class="status-badge">Not Connected</span>`;
+    }
+  }
+}
+
+function initProfile() {
+  const btnAvatar = document.getElementById('btn-user-profile-avatar');
+  const btnOpenEdit = document.getElementById('btn-open-edit-profile');
+  const modalEdit = document.getElementById('modal-edit-profile');
+  const btnCloseEdit = document.getElementById('btn-close-edit-profile');
+  const btnCancelEdit = document.getElementById('btn-cancel-edit-profile');
+  const formEdit = document.getElementById('form-edit-profile');
+
+  if (btnAvatar) {
+    btnAvatar.addEventListener('click', () => switchView('view-profile'));
+  }
+
+  if (btnOpenEdit) {
+    btnOpenEdit.addEventListener('click', () => {
+      populateEditProfileForm();
+      if (modalEdit) modalEdit.classList.add('active');
+    });
+  }
+
+  const closeEditModal = () => {
+    if (modalEdit) modalEdit.classList.remove('active');
+  };
+
+  if (btnCloseEdit) btnCloseEdit.addEventListener('click', closeEditModal);
+  if (btnCancelEdit) btnCancelEdit.addEventListener('click', closeEditModal);
+
+  if (modalEdit) {
+    modalEdit.addEventListener('click', (e) => {
+      if (e.target === modalEdit) closeEditModal();
+    });
+  }
+
+  if (formEdit) {
+    formEdit.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('edit-name')?.value || '',
+        headline: document.getElementById('edit-headline')?.value || '',
+        phone: document.getElementById('edit-phone')?.value || '',
+        location: document.getElementById('edit-location')?.value || '',
+        current_status: document.getElementById('edit-current-status')?.value || '',
+        target_role: document.getElementById('edit-target-role')?.value || '',
+        years_of_experience: document.getElementById('edit-years-exp')?.value || '',
+        preferred_location: document.getElementById('edit-pref-location')?.value || '',
+        career_goal: document.getElementById('edit-career-goal')?.value || '',
+      };
+
+      const res = await apiCall('/profile', 'PUT', payload);
+      if (res && res.success && res.data) {
+        state.user = res.data.user;
+        localStorage.setItem('folio_user_profile', JSON.stringify(state.user));
+        updateUserInterface();
+        renderUserProfile(res.data.user, res.data.stats);
+        closeEditModal();
+        showToast('Profile updated successfully!', 'success');
+      } else {
+        showToast(res.error || 'Failed to update profile.', 'error');
+      }
+    });
+  }
+}
+
+function populateEditProfileForm() {
+  const user = state.user || {};
+  const el = (id) => document.getElementById(id);
+
+  if (el('edit-name')) el('edit-name').value = user.name || '';
+  if (el('edit-headline')) el('edit-headline').value = user.headline || '';
+  if (el('edit-phone')) el('edit-phone').value = user.phone || '';
+  if (el('edit-location')) el('edit-location').value = user.location || '';
+  if (el('edit-current-status')) el('edit-current-status').value = user.current_status || '';
+  if (el('edit-target-role')) el('edit-target-role').value = user.target_role || '';
+  if (el('edit-years-exp')) el('edit-years-exp').value = user.years_of_experience || '';
+  if (el('edit-pref-location')) el('edit-pref-location').value = user.preferred_location || '';
+  if (el('edit-career-goal')) el('edit-career-goal').value = user.career_goal || '';
+
+  updateAccountStatusElement('edit-status-google', !!user.google_connected, 'google');
+  updateAccountStatusElement('edit-status-github', !!user.github_connected, 'github');
+}
+

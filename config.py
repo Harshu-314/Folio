@@ -38,7 +38,7 @@ class Config:
     # (see /api/auth/google) which only needs the Client ID - no secret or
     # redirect URI required, since there's no server-side code exchange.
     # GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URI are accepted here for naming
-    # consistency with GitHub/LinkedIn below and for a future redirect-flow
+    # consistency with GitHub below and for a future redirect-flow
     # migration, but are not read anywhere yet.
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
@@ -49,12 +49,7 @@ class Config:
     GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
     GITHUB_REDIRECT_URI = os.getenv("GITHUB_REDIRECT_URI", "http://localhost:5000/api/auth/github/callback")
 
-    # --- LinkedIn Sign In with OpenID Connect ---
-    LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID", "")
-    LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET", "")
-    LINKEDIN_REDIRECT_URI = os.getenv("LINKEDIN_REDIRECT_URI", "http://localhost:5000/api/auth/linkedin/callback")
-
-    # Where to send the browser back to after a GitHub/LinkedIn redirect-based
+    # Where to send the browser back to after a GitHub redirect-based
     # login completes. Deliberately separate from CLIENT_URL (which is a CORS
     # allow-list and may be "*") - this must be one concrete origin.
     FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")

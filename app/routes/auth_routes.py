@@ -215,62 +215,13 @@ def github_callback():
     return resp
 
 
-# --- LinkedIn Sign In with OpenID Connect -----------------------------------
-
-@auth_bp.route("/linkedin", methods=["GET"])
-@limiter.limit("20 per hour")
-def linkedin_login():
-    if not current_app.config.get("LINKEDIN_CLIENT_ID"):
-        return redirect(_frontend_url(social_auth_error="LinkedIn Sign-In is not configured on the server."))
-
-    state = oauth_service.issue_state("linkedin")
-    resp = redirect(oauth_service.linkedin_authorize_url(state))
-    resp.set_cookie(
-        oauth_service.STATE_COOKIE_NAME, state,
-        max_age=oauth_service.STATE_MAX_AGE_SECONDS,
-        httponly=True, samesite="Lax", secure=request.is_secure,
-    )
-    return resp
-
-
-@auth_bp.route("/linkedin/callback", methods=["GET"])
-@limiter.limit("20 per hour")
-def linkedin_callback():
-    provider_error = request.args.get("error")
-    if provider_error:
-        message = "You cancelled LinkedIn sign-in." if provider_error in ("user_cancelled_login", "user_cancelled_authorize") \
-            else f"LinkedIn sign-in failed: {provider_error}"
-        resp = redirect(_frontend_url(social_auth_error=message))
-        resp.delete_cookie(oauth_service.STATE_COOKIE_NAME)
-        return resp
-
-    try:
-        oauth_service.verify_state("linkedin", request.args.get("state"), request.cookies.get(oauth_service.STATE_COOKIE_NAME))
-        code = request.args.get("code")
-        if not code:
-            raise OAuthError("LinkedIn did not return an authorization code.")
-        profile = oauth_service.linkedin_exchange_and_fetch_profile(code)
-        user = oauth_service.find_or_create_social_user(
-            "linkedin", "linkedin_id", profile["provider_id"], profile["email"], profile["name"]
-        )
-    except OAuthError as e:
-        resp = redirect(_frontend_url(social_auth_error=str(e)))
-        resp.delete_cookie(oauth_service.STATE_COOKIE_NAME)
-        return resp
-
-    exchange_code = oauth_service.issue_exchange_code(user.id)
-    resp = redirect(_frontend_url(social_auth=exchange_code))
-    resp.delete_cookie(oauth_service.STATE_COOKIE_NAME)
-    return resp
-
-
-# --- Shared exchange endpoint (GitHub/LinkedIn redirect -> real JWT) --------
+# --- Shared exchange endpoint (GitHub redirect -> real JWT) ----------------
 
 @auth_bp.route("/exchange", methods=["POST"])
 @limiter.limit("30 per hour")
 def exchange_social_auth_code():
     """
-    Redeems the short-lived one-time code from a GitHub/LinkedIn redirect
+    Redeems the short-lived one-time code from a GitHub redirect
     (see oauth_service.issue_exchange_code) for the application's real JWT -
     the same create_access_token() used by every other login path. Keeping
     the JWT itself out of the redirect URL avoids leaving it in browser

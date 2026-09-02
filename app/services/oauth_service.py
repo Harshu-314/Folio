@@ -1,10 +1,10 @@
 """
-OAuth support for GitHub and LinkedIn social sign-in.
+OAuth support for GitHub social sign-in.
 
 Google is handled separately in auth_routes.py via Google Identity Services'
 ID-token verification (google.oauth2.id_token) - that flow needs no
-server-side code exchange, just a Client ID. GitHub and LinkedIn don't offer
-an equivalent client-side SDK, so they use the standard OAuth 2.0 /
+server-side code exchange, just a Client ID. GitHub doesn't offer
+an equivalent client-side SDK, so it uses the standard OAuth 2.0 /
 OpenID Connect Authorization Code flow implemented here.
 
 Stateless by design (no server-side session or cache), so this works
@@ -84,7 +84,7 @@ def consume_exchange_code(code: str) -> str:
 
 def find_or_create_social_user(provider: str, provider_id_field: str, provider_id: str, email: str, name: str) -> User:
     """
-    Shared account-linking logic for Google/GitHub/LinkedIn.
+    Shared account-linking logic for Google/GitHub.
       - Looks up by the provider's own id column first (fast path for repeat logins).
       - Falls back to matching by email and links the new provider id onto
         that existing account instead of creating a duplicate - e.g. someone
@@ -199,69 +199,4 @@ def github_exchange_and_fetch_profile(code: str) -> dict:
     return {"provider_id": provider_id, "email": email.strip().lower(), "name": name}
 
 
-# --- LinkedIn (OpenID Connect) ------------------------------------------------
 
-LINKEDIN_AUTHORIZE_URL = "https://www.linkedin.com/oauth/v2/authorization"
-LINKEDIN_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
-LINKEDIN_USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
-
-
-def linkedin_authorize_url(state: str) -> str:
-    cfg = current_app.config
-    params = {
-        "response_type": "code",
-        "client_id": cfg["LINKEDIN_CLIENT_ID"],
-        "redirect_uri": cfg["LINKEDIN_REDIRECT_URI"],
-        "scope": "openid profile email",
-        "state": state,
-    }
-    return f"{LINKEDIN_AUTHORIZE_URL}?{urlencode(params)}"
-
-
-def linkedin_exchange_and_fetch_profile(code: str) -> dict:
-    """Returns {"provider_id": str, "email": str, "name": str}. Raises OAuthError."""
-    cfg = current_app.config
-    if not cfg["LINKEDIN_CLIENT_ID"] or not cfg["LINKEDIN_CLIENT_SECRET"]:
-        raise OAuthError("LinkedIn Sign-In is not configured on the server.")
-
-    token_resp = requests.post(
-        LINKEDIN_TOKEN_URL,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": cfg["LINKEDIN_REDIRECT_URI"],
-            "client_id": cfg["LINKEDIN_CLIENT_ID"],
-            "client_secret": cfg["LINKEDIN_CLIENT_SECRET"],
-        },
-        timeout=15,
-    )
-    if token_resp.status_code != 200:
-        raise OAuthError("LinkedIn token exchange failed.")
-    token_data = token_resp.json()
-    access_token = token_data.get("access_token")
-    if not access_token:
-        raise OAuthError(token_data.get("error_description") or "LinkedIn did not return an access token.")
-
-    # The OIDC userinfo endpoint returns the verified identity directly - no
-    # manual JWT/JWKS signature verification needed here, since presenting a
-    # valid access token to LinkedIn's own API is itself proof of authenticity.
-    userinfo_resp = requests.get(
-        LINKEDIN_USERINFO_URL,
-        headers={"Authorization": f"Bearer {access_token}"},
-        timeout=15,
-    )
-    if userinfo_resp.status_code != 200:
-        raise OAuthError("Couldn't fetch your LinkedIn profile.")
-    userinfo = userinfo_resp.json()
-
-    if not userinfo.get("email_verified", False):
-        raise OAuthError("LinkedIn account email is not verified.")
-
-    email = userinfo.get("email")
-    if not email:
-        raise OAuthError("LinkedIn didn't share an email address.")
-
-    provider_id = userinfo.get("sub")
-    name = userinfo.get("name") or email.split("@")[0]
-    return {"provider_id": provider_id, "email": email.strip().lower(), "name": name}

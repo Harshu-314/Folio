@@ -40,6 +40,7 @@
       <button class="nav-tab" data-target="view-dashboard" id="nav-dashboard-tab" style="display:none;">Dashboard</button>
       <button class="nav-tab" data-target="view-wizard">AI Creator</button>
       <button class="nav-tab" data-target="view-studio" id="nav-studio-tab" style="display:none;">Studio Editor</button>
+      <button class="nav-tab" data-target="view-profile" id="nav-profile-tab" style="display:none;">My Profile</button>
       <button class="nav-tab" data-target="view-pricing">Pricing</button>
     </div>
 
@@ -61,7 +62,10 @@
       </div>
 
       <div id="auth-logged-in" class="user-profile-menu" style="display:none;">
-        <span class="user-greeting" id="user-display-name">Alex Dev</span>
+        <button class="user-avatar-btn" id="btn-user-profile-avatar" title="Open My Profile">
+          <span class="avatar-circle" id="user-avatar-initials">AD</span>
+          <span class="user-greeting" id="user-display-name">Alex Dev</span>
+        </button>
         <button class="btn btn-secondary btn-sm" id="btn-open-upgrade">Upgrade (₹20)</button>
         <button class="btn btn-ghost btn-sm btn-icon" id="btn-logout" title="Sign Out">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -935,6 +939,137 @@ Reduced average API response time by 220ms by adding database indexes and cachin
       </div>
     </section>
 
+    <!-- VIEW 6: USER PROFILE VIEW -->
+    <section class="view-pane" id="view-profile">
+      <div class="profile-container">
+        
+        <!-- PROFILE HEADER -->
+        <div class="profile-header-card">
+          <div class="profile-header-main">
+            <div class="profile-avatar-large" id="prof-avatar-circle">
+              <span id="prof-avatar-text">AD</span>
+            </div>
+            <div class="profile-identity">
+              <h2 id="prof-full-name">Alex Dev</h2>
+              <p class="profile-headline" id="prof-headline">Professional Headline Not Set</p>
+              <p class="profile-email" id="prof-email">alex@example.com</p>
+              <div class="profile-badges">
+                <span class="plan-pill free" id="prof-plan-pill">Free Tier</span>
+                <span class="auth-provider-badge" id="prof-auth-provider">Password Account</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-open-edit-profile">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            Edit Profile
+          </button>
+        </div>
+
+        <!-- PROFILE GRID CONTENT -->
+        <div class="profile-grid">
+          
+          <!-- PERSONAL INFORMATION -->
+          <div class="profile-card">
+            <div class="card-header-row">
+              <div class="card-title">
+                <span class="card-icon">👤</span>
+                <h3>Personal Information</h3>
+              </div>
+            </div>
+            <div class="profile-field-list">
+              <div class="profile-field-item">
+                <span class="field-label">Phone Number</span>
+                <span class="field-value" id="prof-phone">Not specified</span>
+              </div>
+              <div class="profile-field-item">
+                <span class="field-label">Location</span>
+                <span class="field-value" id="prof-location">Not specified</span>
+              </div>
+              <div class="profile-field-item">
+                <span class="field-label">Professional Headline</span>
+                <span class="field-value" id="prof-headline-val">Not specified</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI CAREER PROFILE -->
+          <div class="profile-card">
+            <div class="card-header-row">
+              <div class="card-title">
+                <span class="card-icon">🚀</span>
+                <h3>AI Career Profile</h3>
+              </div>
+            </div>
+            <div class="profile-field-list">
+              <div class="profile-field-item">
+                <span class="field-label">Current Status</span>
+                <span class="field-value" id="prof-current-status">Not specified</span>
+              </div>
+              <div class="profile-field-item">
+                <span class="field-label">Target Job Role</span>
+                <span class="field-value" id="prof-target-role">Not specified</span>
+              </div>
+              <div class="profile-field-item">
+                <span class="field-label">Years of Experience</span>
+                <span class="field-value" id="prof-years-exp">Not specified</span>
+              </div>
+              <div class="profile-field-item">
+                <span class="field-label">Preferred Job Location</span>
+                <span class="field-value" id="prof-pref-location">Not specified</span>
+              </div>
+              <div class="profile-field-item full-width">
+                <span class="field-label">Career Goal</span>
+                <p class="field-paragraph" id="prof-career-goal">Not specified</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTIVITY -->
+          <div class="profile-card">
+            <div class="card-header-row">
+              <div class="card-title">
+                <span class="card-icon">📊</span>
+                <h3>Activity</h3>
+              </div>
+            </div>
+            <div class="profile-stats-container">
+              <div class="stat-box">
+                <div class="stat-number" id="prof-stat-resumes">0</div>
+                <div class="stat-label">Total Resumes</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONNECTED ACCOUNTS -->
+          <div class="profile-card">
+            <div class="card-header-row">
+              <div class="card-title">
+                <span class="card-icon">🔗</span>
+                <h3>Connected Accounts</h3>
+              </div>
+            </div>
+            <div class="connected-accounts-list">
+              <div class="connected-account-item">
+                <div class="account-info">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/></svg>
+                  <span>Google Account</span>
+                </div>
+                <div id="prof-status-google"><span class="status-badge">Not Connected</span></div>
+              </div>
+              <div class="connected-account-item">
+                <div class="account-info">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+                  <span>GitHub Account</span>
+                </div>
+                <div id="prof-status-github"><span class="status-badge">Not Connected</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- FORGOT PASSWORD MODAL -->
@@ -1050,9 +1185,6 @@ Reduced average API response time by 220ms by adding database indexes and cachin
             <a href="#" class="btn btn-outline btn-block social-auth-btn" data-provider="github">
               <span class="social-auth-icon">🐙</span> Continue with GitHub
             </a>
-            <a href="#" class="btn btn-outline btn-block social-auth-btn" data-provider="linkedin">
-              <span class="social-auth-icon">in</span> Continue with LinkedIn
-            </a>
           </div>
         </form>
 
@@ -1081,9 +1213,6 @@ Reduced average API response time by 220ms by adding database indexes and cachin
           <div class="social-auth-buttons">
             <a href="#" class="btn btn-outline btn-block social-auth-btn" data-provider="github">
               <span class="social-auth-icon">🐙</span> Continue with GitHub
-            </a>
-            <a href="#" class="btn btn-outline btn-block social-auth-btn" data-provider="linkedin">
-              <span class="social-auth-icon">in</span> Continue with LinkedIn
             </a>
           </div>
         </form>
@@ -1191,7 +1320,7 @@ Reduced average API response time by 220ms by adding database indexes and cachin
             <div class="upi-qr-section">
               <div class="upi-qr-wrapper">
                 <div class="qr-scanner-box" id="dynamic-qr-box">
-                  <img src="/images/upi_qr_code.jpg" alt="PhonePe UPI Scan & Pay QR Code" class="upi-qr-image">
+                  <img src="/images/upi_qr1.jpeg" alt="PhonePe UPI Scan & Pay QR Code" class="upi-qr-image">
                 </div>
                 <div class="qr-timer-badge">⏱️ Scan with PhonePe / GPay / Paytm</div>
               </div>
@@ -1396,6 +1525,101 @@ Reduced average API response time by 220ms by adding database indexes and cachin
       <div class="status-actions">
         <button class="btn btn-primary" id="btn-reopen-checkout">Reopen Checkout 💳</button>
       </div>
+    </div>
+  </div>
+
+  <!-- EDIT PROFILE MODAL -->
+  <div class="modal-overlay" id="modal-edit-profile">
+    <div class="modal-card modal-lg">
+      <button class="modal-close" id="btn-close-edit-profile">✕</button>
+      <div class="modal-header">
+        <h3>Edit My Profile</h3>
+        <p class="modal-subtitle">Update your personal details and AI career preferences.</p>
+      </div>
+      <form id="form-edit-profile" class="modal-form-flex">
+        <div class="modal-body modal-grid-2">
+          
+          <div class="form-section-title span-2">Personal Information</div>
+
+          <div class="form-group">
+            <label for="edit-name">Full Name *</label>
+            <input type="text" id="edit-name" required placeholder="Alex Dev">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-headline">Professional Headline</label>
+            <input type="text" id="edit-headline" placeholder="e.g. Full Stack Engineer">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-phone">Phone Number</label>
+            <input type="text" id="edit-phone" placeholder="e.g. +91 98765 43210">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-location">Location</label>
+            <input type="text" id="edit-location" placeholder="e.g. Bangalore, India">
+          </div>
+
+          <div class="form-section-title span-2">AI Career Profile</div>
+
+          <div class="form-group">
+            <label for="edit-current-status">Current Status</label>
+            <select id="edit-current-status">
+              <option value="">Select status...</option>
+              <option value="Student">Student</option>
+              <option value="Fresher">Fresher</option>
+              <option value="Working Professional">Working Professional</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-target-role">Target Job Role</label>
+            <input type="text" id="edit-target-role" placeholder="e.g. Lead Backend Engineer">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-years-exp">Years of Experience</label>
+            <input type="text" id="edit-years-exp" placeholder="e.g. 3 Years">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-pref-location">Preferred Job Location</label>
+            <input type="text" id="edit-pref-location" placeholder="e.g. Remote / Hybrid / Bangalore">
+          </div>
+
+          <div class="form-group span-2">
+            <label for="edit-career-goal">Career Goal</label>
+            <textarea id="edit-career-goal" rows="3" placeholder="Briefly describe your career aspiration or target goals..."></textarea>
+          </div>
+
+          <div class="form-section-title span-2">Connected Accounts</div>
+          <div class="form-group span-2">
+            <div class="connected-accounts-list modal-accounts">
+              <div class="connected-account-item">
+                <div class="account-info">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/></svg>
+                  <span>Google Account</span>
+                </div>
+                <div id="edit-status-google"><span class="status-badge">Not Connected</span></div>
+              </div>
+              <div class="connected-account-item">
+                <div class="account-info">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+                  <span>GitHub Account</span>
+                </div>
+                <div id="edit-status-github"><span class="status-badge">Not Connected</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="btn-cancel-edit-profile">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Profile Changes</button>
+        </div>
+      </form>
     </div>
   </div>
 

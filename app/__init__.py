@@ -43,6 +43,7 @@ def create_app(config_name=None):
     from app.routes.ats_routes import ats_bp
     from app.routes.pdf_routes import pdf_bp
     from app.routes.templates_routes import templates_bp, billing_bp
+    from app.routes.profile_routes import profile_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(resume_bp)
@@ -51,6 +52,7 @@ def create_app(config_name=None):
     app.register_blueprint(pdf_bp)
     app.register_blueprint(templates_bp)
     app.register_blueprint(billing_bp)
+    app.register_blueprint(profile_bp)
 
     # --- Health check ---
     @app.route("/api/health", methods=["GET"])
