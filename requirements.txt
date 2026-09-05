@@ -10,6 +10,7 @@ fpdf2==2.7.9
 email-validator==2.2.0
 gunicorn==22.0.0
 google-auth==2.34.0
+google-genai 
 # GitHub/LinkedIn OAuth needs no new packages: requests (above) makes the
 # provider HTTP calls, and itsdangerous (a direct Flask dependency, already
 # installed transitively) signs the CSRF state and exchange-code tokens.
