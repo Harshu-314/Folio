@@ -57,7 +57,7 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     resumes = db.relationship("Resume", backref="owner", lazy=True, cascade="all, delete-orphan")
-
+    transactions = db.relationship("Transaction", backref="user", lazy=True, cascade="all, delete-orphan")
     def to_dict(self):
         return {
             "id": self.id,
