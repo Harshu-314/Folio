@@ -34,35 +34,34 @@ def list_templates():
 
 
 @billing_bp.route("/create-payment", methods=["POST"])
-@jwt_required(optional=True)
+@jwt_required()
 def create_payment():
     """
-    Initializes a multi-method payment checkout session (UPI, Netbanking, Card, Wallet).
-    Returns dynamic transaction ID and UPI payment URI payload.
+    Initializes a UPI payment checkout session.
+    Calculates expected amount server-side based on plan selection (monthly = ₹199, annual = ₹1,999).
     """
     user_id = get_jwt_identity()
-    user = User.query.get(user_id) if user_id else User.query.order_by(User.created_at.desc()).first()
+    user = User.query.get(user_id)
+    if not user:
+        return error_response("Authentication required.", 401)
 
     payload = request.get_json(silent=True) or {}
-    method = (payload.get("method") or "upi").lower()
-    amount = float(payload.get("amount") or current_app.config.get("PREMIUM_PRICE_INR", 20))
-    vpa = payload.get("vpa") or "resumefolio@upi"
+    plan_type = (payload.get("plan_type") or payload.get("billing_cycle") or payload.get("period") or "monthly").lower()
+    amount = 1999.0 if plan_type == "annual" else 199.0
 
     tx_id = f"TXN_{uuid.uuid4().hex[:12].upper()}"
     merchant_vpa = current_app.config.get("EMAIL_FROM_ADDRESS") or "resumefolio@upi"
     if "@" not in merchant_vpa:
         merchant_vpa = "resumefolio@upi"
 
-    # Construct standard UPI Payment URI payload (upi://pay?pa=...&pn=...&am=...&tr=...)
     upi_uri = f"upi://pay?pa={merchant_vpa}&pn=ResumeFolio&am={amount:.2f}&tr={tx_id}&cu=INR&tn=Folio%20Premium%20Upgrade"
 
     payment_session = {
         "payment_id": tx_id,
         "amount": amount,
         "currency": "INR",
-        "method": method,
+        "method": "upi",
         "upi_uri": upi_uri,
-        "vpa": vpa,
         "status": "PENDING",
         "timestamp": datetime.utcnow().isoformat(),
     }
@@ -71,33 +70,25 @@ def create_payment():
 
 
 @billing_bp.route("/verify-payment", methods=["POST"])
-@jwt_required(optional=True)
+@jwt_required()
 def verify_payment():
     """
-    Verifies actual payment completion status (SUCCESS, FAILED, PENDING, CANCELLED).
-    Enforces UTR reference verification & gateway check before upgrading user plan.
+    Submits UTR reference number for verification and upgrades authenticated user.
+    Requires a valid logged-in JWT. Never uses fallback or latest user.
+    Price is calculated strictly server-side: monthly = ₹199, annual = ₹1,999.
     """
     user_id = get_jwt_identity()
     user = User.query.get(user_id) if user_id else None
 
     if not user:
-        user = User.query.order_by(User.created_at.desc()).first()
-        if not user:
-            user = User(
-                name="Valued Customer",
-                email="user@resumebuilder.test",
-                email_verified=True,
-                plan="free"
-            )
-            db.session.add(user)
-            db.session.commit()
+        return error_response("Authentication required. Please sign in.", 401)
 
     payload = request.get_json(silent=True) or {}
     status_requested = (payload.get("status") or "SUCCESS").upper()
 
     if status_requested == "FAILED":
         return error_response(
-            "Payment failed. Bank gateway declined the transaction.",
+            "Payment failed. Transaction declined.",
             400,
             details={"status": "FAILED"}
         )
@@ -107,33 +98,34 @@ def verify_payment():
             400,
             details={"status": "CANCELLED"}
         )
-    elif status_requested == "PENDING":
-        return success_response(
-            {"status": "PENDING"},
-            message="Payment is pending confirmation from bank gateway."
-        )
 
-    # --- REAL PAYMENT TRANSACTION VERIFICATION ---
+    # Server-side price determination
+    plan_type = (payload.get("plan_type") or payload.get("billing_cycle") or payload.get("period") or "monthly").lower()
+    if plan_type == "annual":
+        amount = 1999.0
+        plan_label = "Premium Annual"
+    else:
+        amount = 199.0
+        plan_label = "Premium Monthly"
+
     utr = (payload.get("utr") or payload.get("transaction_ref") or payload.get("payment_id") or "").strip()
-    method = (payload.get("method") or "UPI").upper()
-    amount = float(payload.get("amount") or 20.0)
-    bank = payload.get("bank") or payload.get("provider") or "PhonePe / Banking Network"
+    method = "UPI"
+    bank = payload.get("bank") or payload.get("provider") or "PhonePe / UPI Network"
 
     # 1. Require a non-empty UTR / Transaction Reference
     if not utr:
         return error_response(
-            "Payment verification failed: Missing transaction reference. Please complete payment and enter your 12-digit UPI UTR number.",
+            "Missing transaction reference. Please complete payment and enter your 12-digit UPI UTR number.",
             400,
             details={"error_code": "MISSING_UTR"}
         )
 
-    # 2. Format validation: UTR must be a valid 12-digit UPI reference number or valid payment gateway ID (e.g. 423819028491)
+    # 2. Format validation: UTR must be a valid 12-digit UPI reference number
     clean_utr = re.sub(r'[^a-zA-Z0-9]', '', utr)
     
-    # Reject dummy / fake test strings
     if len(clean_utr) < 12 or clean_utr in ["000000000000", "111111111111", "123456789012", "012345678901"]:
         return error_response(
-            "Payment verification failed: Invalid 12-digit UPI UTR reference number. Please check your PhonePe / Google Pay receipt.",
+            "Invalid 12-digit UPI UTR reference number. Please check your PhonePe / Google Pay receipt.",
             400,
             details={"error_code": "INVALID_UTR_FORMAT"}
         )
@@ -142,16 +134,15 @@ def verify_payment():
     existing_tx = Transaction.query.filter_by(utr=clean_utr).first()
     if existing_tx and existing_tx.user_id != user.id:
         return error_response(
-            "Payment verification failed: This UTR / Transaction Reference has already been used.",
+            "This UTR / Transaction Reference has already been submitted.",
             400,
             details={"error_code": "DUPLICATE_UTR"}
         )
 
-    # --- VERIFICATION PASSED ---
-    # Upgrade user plan to premium in DB ONLY when real transaction is verified!
+    # --- UPGRADE USER ---
     user.plan = "premium"
 
-    # Record verified transaction in DB if not already recorded
+    # Record transaction in DB if not already recorded
     if not existing_tx:
         new_tx = Transaction(
             user_id=user.id,
@@ -172,21 +163,21 @@ def verify_payment():
         "currency": "INR",
         "method": method,
         "bank_or_provider": bank,
-        "plan": "Premium Pro (Lifetime)",
+        "plan": plan_label,
         "timestamp": datetime.utcnow().strftime("%d %b %Y, %I:%M %p UTC"),
-        "status": "VERIFIED & SUCCESSFUL",
+        "status": "Payment submitted for verification",
         "customer_name": user.name,
         "customer_email": user.email,
     }
 
     return success_response(
         {"user": user.to_dict(), "token": token, "receipt": receipt},
-        message="Payment verified with banking gateway! Account upgraded to Premium Pro.",
+        message="Payment submitted for verification. Account upgraded to Premium.",
     )
 
 
 @billing_bp.route("/upgrade", methods=["POST"])
-@jwt_required(optional=True)
+@jwt_required()
 def upgrade_to_premium():
     return verify_payment()
 
@@ -196,8 +187,8 @@ def upgrade_to_premium():
 def payment_status(payment_id):
     """Returns payment status for polling."""
     return success_response(
-        {"payment_id": payment_id, "status": "SUCCESSFUL", "amount": 20.0},
-        message="Transaction verified.",
+        {"payment_id": payment_id, "status": "Payment submitted for verification"},
+        message="Transaction reference received.",
     )
 
 
@@ -212,4 +203,5 @@ def downgrade_to_free():
     user.plan = "free"
     db.session.commit()
     return success_response({"user": user.to_dict()}, message="Moved to Free plan.")
+
 

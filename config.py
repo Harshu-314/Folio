@@ -58,7 +58,9 @@ class Config:
     CLIENT_URL = os.getenv("CLIENT_URL", "*")
 
     # --- Business ---
-    PREMIUM_PRICE_INR = int(os.getenv("PREMIUM_PRICE_INR", 20))
+    PREMIUM_PRICE_MONTHLY_INR = int(os.getenv("PREMIUM_PRICE_MONTHLY_INR", 199))
+    PREMIUM_PRICE_ANNUAL_INR = int(os.getenv("PREMIUM_PRICE_ANNUAL_INR", 1999))
+    PREMIUM_PRICE_INR = PREMIUM_PRICE_MONTHLY_INR
 
     # --- Rate limiting ---
     RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")

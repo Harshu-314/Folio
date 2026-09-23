@@ -55,12 +55,12 @@ const state = {
     target_job_description: '',
     content: {
       personal: {
-        name: 'Asha Rao',
-        email: 'asha.rao@example.com',
-        phone: '+91 90000 00000',
-        location: 'Hyderabad, India',
-        linkedin: 'linkedin.com/in/asharao',
-        portfolio: 'asharao.dev'
+        name: '',
+        email: '',
+        phone: '',
+        location: '',
+        linkedin: '',
+        portfolio: ''
       },
       summary: 'Final-year CS student who has shipped 3 full-stack projects and interned as a backend developer, focused on building reliable, well-tested APIs.',
       experience: [
@@ -335,26 +335,26 @@ function updateUserInterface() {
         btnOpenUpgrade.textContent = '⭐ Pro Active';
         btnOpenUpgrade.className = 'btn btn-ghost btn-sm';
       } else {
-        btnOpenUpgrade.textContent = 'Upgrade (₹20)';
+        btnOpenUpgrade.textContent = 'Upgrade to Premium';
         btnOpenUpgrade.className = 'btn btn-secondary btn-sm';
       }
     }
 
     // 5. Pricing View Buttons
-    if (btnPriceUpgrade) {
+    const upgradeBtns = document.querySelectorAll('.btn-price-upgrade-action');
+    upgradeBtns.forEach(b => {
       if (isPremium) {
-        btnPriceUpgrade.innerHTML = '<span>✓ Active Plan (Premium Pro)</span>';
-        btnPriceUpgrade.classList.remove('btn-sparkle');
-        if (btnPriceDowngrade) btnPriceDowngrade.style.display = 'block';
+        b.innerHTML = '<span>✓ Active Plan (Premium)</span>';
+        b.classList.remove('btn-sparkle');
+        b.disabled = true;
       } else {
-        btnPriceUpgrade.innerHTML = '<span>Upgrade to Premium (₹20)</span>';
-        btnPriceUpgrade.classList.add('btn-sparkle');
-        if (btnPriceDowngrade) btnPriceDowngrade.style.display = 'none';
+        const plan = b.getAttribute('data-plan');
+        const text = plan === 'annual' ? 'Upgrade Annual (₹1,999/yr)' : 'Upgrade Monthly (₹199/mo)';
+        b.innerHTML = `<span>${text}</span>`;
+        b.classList.add('btn-sparkle');
+        b.disabled = false;
       }
-    }
-    if (btnPriceFree) {
-      btnPriceFree.textContent = isPremium ? 'Free Tier' : 'Current Tier';
-    }
+    });
 
     // 6. Email Verification Banner
     const verifyBanner = document.getElementById('verify-email-banner');
@@ -489,6 +489,9 @@ function switchView(viewId, options = {}) {
 
   if (viewId === 'view-dashboard') {
     loadDashboardResumes();
+  }
+  if (viewId === 'view-wizard') {
+    autofillWizardUserProfile();
   }
   if (viewId === 'view-studio') {
     renderStudioFormValues();
@@ -1232,6 +1235,20 @@ async function deleteResumeCard(id) {
   }
 }
 
+function autofillWizardUserProfile() {
+  const nameEl = document.getElementById('wiz-name');
+  const emailEl = document.getElementById('wiz-email');
+  const phoneEl = document.getElementById('wiz-phone');
+  const locEl = document.getElementById('wiz-location');
+
+  if (state.user) {
+    if (nameEl && !nameEl.value) nameEl.value = state.user.name || '';
+    if (emailEl && !emailEl.value) emailEl.value = state.user.email || '';
+    if (phoneEl && !phoneEl.value) phoneEl.value = state.user.phone || '';
+    if (locEl && !locEl.value) locEl.value = state.user.location || '';
+  }
+}
+
 // --- AI GUIDED GENERATOR WIZARD ---
 function initWizard() {
   const btnNext = document.getElementById('btn-wiz-next');
@@ -1241,6 +1258,7 @@ function initWizard() {
   if (btnNext) btnNext.addEventListener('click', () => changeWizardStep(1));
   if (btnPrev) btnPrev.addEventListener('click', () => changeWizardStep(-1));
   if (btnSubmit) btnSubmit.addEventListener('click', submitAiWizard);
+  autofillWizardUserProfile();
 }
 
 function changeWizardStep(dir) {
@@ -2459,11 +2477,11 @@ function escapeHtml(str) {
 }
 
 // --- PRICING & PAYMENT GATEWAY INTEGRATION ---
+let currentCheckoutPlan = 'monthly';
+
 function initPricing() {
   const btnUpgradeNav = document.getElementById('btn-upgrade-nav');
   const btnOpenUpgrade = document.getElementById('btn-open-upgrade');
-  const btnPriceUpgrade = document.getElementById('btn-price-upgrade');
-  const btnPriceDowngrade = document.getElementById('btn-price-downgrade');
   const btnStatUpgrade = document.getElementById('btn-stat-upgrade');
 
   // Navigation & Upgrade Modal Triggers
@@ -2475,7 +2493,7 @@ function initPricing() {
         showToast('Please sign in to upgrade your plan.', 'info');
         return openAuthModal('login');
       }
-      openPaymentModal();
+      openPaymentModal('monthly');
     });
   }
   
@@ -2485,9 +2503,21 @@ function initPricing() {
         showToast('Please sign in to upgrade your plan.', 'info');
         return openAuthModal('login');
       }
-      openPaymentModal();
+      openPaymentModal('monthly');
     });
   }
+
+  // Open Payment Modal from Pricing Page Cards
+  document.querySelectorAll('.btn-price-upgrade-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!state.token) {
+        showToast('Please sign in or create an account first.', 'info');
+        return openAuthModal('login');
+      }
+      const plan = btn.getAttribute('data-plan') || 'monthly';
+      openPaymentModal(plan);
+    });
+  });
 
   // Modals & Close buttons
   const paymentModal = document.getElementById('payment-modal');
@@ -2521,156 +2551,16 @@ function initPricing() {
     btnPrintReceipt.addEventListener('click', () => window.print());
   }
 
-  // Open Payment Modal from Pricing Page
-  if (btnPriceUpgrade) {
-    btnPriceUpgrade.addEventListener('click', () => {
-      if (!state.token) {
-        showToast('Please sign in or create an account first.', 'info');
-        return openAuthModal('login');
-      }
-      openPaymentModal();
-    });
-  }
-
-  // Payment Methods Tabs Switching
-  const payTabs = document.querySelectorAll('.pay-tab');
-  const payPanels = {
-    card: document.getElementById('form-pay-card'),
-    upi: document.getElementById('form-pay-upi'),
-    netbanking: document.getElementById('form-pay-netbanking'),
-    wallet: document.getElementById('form-pay-wallet')
-  };
-
-  payTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const method = tab.getAttribute('data-pay-method');
-      payTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-
-      Object.keys(payPanels).forEach(key => {
-        if (payPanels[key]) {
-          payPanels[key].classList.toggle('active', key === method);
-        }
-      });
-    });
-  });
-
-  // Card Brand Detection & Auto-Formatting
-  const cardInput = document.getElementById('pay-card-number');
-  const expiryInput = document.getElementById('pay-card-expiry');
-  const cvvInput = document.getElementById('pay-card-cvv');
-  const cardNameInput = document.getElementById('pay-card-name');
-  const btnFillTestCard = document.getElementById('btn-fill-test-card');
-  const brandChips = {
-    visa: document.getElementById('chip-visa'),
-    mastercard: document.getElementById('chip-mastercard'),
-    rupay: document.getElementById('chip-rupay'),
-    amex: document.getElementById('chip-amex')
-  };
-
-  if (cardInput) {
-    cardInput.addEventListener('input', (e) => {
-      const formatted = formatCardNumber(e.target.value);
-      e.target.value = formatted;
-      
-      const clean = formatted.replace(/\D/g, '');
-      const brand = detectCardBrand(clean);
-      
-      Object.keys(brandChips).forEach(key => {
-        if (brandChips[key]) {
-          brandChips[key].classList.toggle('active', key === brand);
-        }
-      });
-    });
-  }
-
-  if (expiryInput) {
-    expiryInput.addEventListener('input', (e) => {
-      let v = e.target.value.replace(/\D/g, '').substring(0, 4);
-      if (v.length >= 3) {
-        e.target.value = v.substring(0, 2) + '/' + v.substring(2, 4);
-      } else {
-        e.target.value = v;
-      }
-    });
-  }
-
-  if (cvvInput) {
-    cvvInput.addEventListener('input', (e) => {
-      e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
-    });
-  }
-
-  if (btnFillTestCard) {
-    btnFillTestCard.addEventListener('click', () => {
-      if (cardInput) cardInput.value = '4532 8901 2345 6789';
-      if (cardNameInput) cardNameInput.value = (state.user && state.user.name) || 'Asha Rao';
-      if (expiryInput) expiryInput.value = '12/28';
-      if (cvvInput) cvvInput.value = '888';
-      if (brandChips.visa) {
-        Object.keys(brandChips).forEach(k => brandChips[k]?.classList.remove('active'));
-        brandChips.visa.classList.add('active');
-      }
-      showToast('Demo card credentials populated!', 'info');
-    });
-  }
-
-  // UPI Verification
-  const btnVerifyUpi = document.getElementById('btn-verify-upi');
-  const upiInput = document.getElementById('pay-upi-id');
-  const upiVerifiedBadge = document.getElementById('upi-verified-badge');
-
-  if (btnVerifyUpi && upiInput) {
-    btnVerifyUpi.addEventListener('click', () => {
-      const val = upiInput.value.trim();
-      const isValid = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(val);
-      if (isValid) {
-        if (upiVerifiedBadge) {
-          upiVerifiedBadge.style.display = 'block';
-          upiVerifiedBadge.textContent = `✓ Valid UPI ID (${val})`;
-        }
-        showToast('UPI ID successfully verified with bank!', 'success');
-      } else {
-        if (upiVerifiedBadge) upiVerifiedBadge.style.display = 'none';
-        showToast('Please enter a valid UPI format (e.g. name@okaxis, mobile@paytm)', 'error');
-      }
-    });
-  }
-
-  // --- FORM SUBMISSIONS ---
-  // 1. Card Payment Form
-  if (payPanels.card) {
-    payPanels.card.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const num = (cardInput?.value || '').replace(/\D/g, '');
-      const name = cardNameInput?.value.trim() || '';
-      const exp = expiryInput?.value.trim() || '';
-      const cvv = cvvInput?.value.trim() || '';
-
-      if (num.length < 15) return showToast('Please enter a valid 16-digit card number.', 'error');
-      if (!name) return showToast('Please enter the cardholder name.', 'error');
-      if (exp.length < 5) return showToast('Please enter a valid expiry date (MM/YY).', 'error');
-      if (cvv.length < 3) return showToast('Please enter a valid 3 or 4-digit CVV.', 'error');
-
-      const brand = detectCardBrand(num).toUpperCase();
-      await executePayment({
-        payment_id: `CARD_${brand}_${Date.now().toString().slice(-8)}`,
-        method: `CARD (${brand} •••• ${num.slice(-4)})`,
-        bank: 'Visa/Mastercard Gateway',
-        amount: 20
-      });
-    });
-  }
-
-  // 2. UPI Payment Form (PhonePe / GPay QR Scan with UTR verification)
-  if (payPanels.upi) {
-    payPanels.upi.addEventListener('submit', async (e) => {
+  // UPI Payment Form Submission
+  const upiForm = document.getElementById('form-pay-upi');
+  if (upiForm) {
+    upiForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const utrInput = document.getElementById('pay-upi-utr');
       const utrVal = utrInput ? utrInput.value.trim() : '';
 
       if (!utrVal || utrVal.replace(/\D/g, '').length < 12) {
-        showToast('Please enter the valid 12-digit UPI UTR number from your PhonePe / GPay receipt.', 'error');
+        showToast('Please enter a valid 12-digit UPI UTR / Reference number from your payment receipt.', 'error');
         if (utrInput) utrInput.focus();
         return;
       }
@@ -2678,42 +2568,9 @@ function initPricing() {
       await executePayment({
         utr: utrVal,
         payment_id: utrVal,
-        method: 'UPI (PhonePe QR)',
-        bank: 'PhonePe / Banking Gateway',
-        amount: 20
-      });
-    });
-  }
-
-  // 3. Net Banking Form
-  if (payPanels.netbanking) {
-    payPanels.netbanking.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const selectedBankRadio = document.querySelector('input[name="selected_bank"]:checked');
-      const allBanksSelect = document.getElementById('pay-all-banks');
-      const bank = (allBanksSelect?.value) || (selectedBankRadio?.value) || 'HDFC Bank';
-
-      await executePayment({
-        payment_id: `NB_${bank.replace(/\s+/g, '_').toUpperCase()}_${Date.now().toString().slice(-6)}`,
-        method: 'NET_BANKING',
-        bank: bank,
-        amount: 20
-      });
-    });
-  }
-
-  // 4. Wallet Form
-  if (payPanels.wallet) {
-    payPanels.wallet.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const selectedWallet = document.querySelector('input[name="selected_wallet"]:checked');
-      const walletName = selectedWallet ? selectedWallet.value : 'Paytm Wallet';
-
-      await executePayment({
-        payment_id: `WAL_${walletName.replace(/\s+/g, '_').toUpperCase()}_${Date.now().toString().slice(-6)}`,
-        method: 'WALLET',
-        bank: walletName,
-        amount: 20
+        plan_type: currentCheckoutPlan,
+        method: 'UPI',
+        bank: 'UPI Network'
       });
     });
   }
@@ -2723,8 +2580,6 @@ function initPricing() {
   const btnCancelFailed = document.getElementById('btn-cancel-failed');
   const btnRetry = document.getElementById('btn-retry-payment');
   const btnClosePending = document.getElementById('btn-close-pending-modal');
-  const btnCheckPending = document.getElementById('btn-check-pending-status');
-  const btnCompletePending = document.getElementById('btn-simulate-complete-pending');
   const btnCloseCancelled = document.getElementById('btn-close-cancelled-modal');
   const btnReopen = document.getElementById('btn-reopen-checkout');
 
@@ -2737,56 +2592,41 @@ function initPricing() {
 
   if (btnCloseFailed) btnCloseFailed.addEventListener('click', closeAllStatusModals);
   if (btnCancelFailed) btnCancelFailed.addEventListener('click', closeAllStatusModals);
-  if (btnRetry) btnRetry.addEventListener('click', () => { closeAllStatusModals(); openPaymentModal(); });
-  
+  if (btnRetry) btnRetry.addEventListener('click', () => { closeAllStatusModals(); openPaymentModal(currentCheckoutPlan); });
   if (btnClosePending) btnClosePending.addEventListener('click', closeAllStatusModals);
-  if (btnCheckPending) btnCheckPending.addEventListener('click', () => { showToast('Checking UPI status with banking server...', 'info'); });
-  if (btnCompletePending) btnCompletePending.addEventListener('click', async () => {
-    closeAllStatusModals();
-    await executePayment({ payment_id: `UPI_${Date.now().toString().slice(-6)}`, method: 'UPI', status: 'SUCCESS', bank: 'UPI Interface' });
-  });
-
   if (btnCloseCancelled) btnCloseCancelled.addEventListener('click', closeAllStatusModals);
-  if (btnReopen) btnReopen.addEventListener('click', () => { closeAllStatusModals(); openPaymentModal(); });
-
-  // Downgrade button (for testing/demo)
-  if (btnPriceDowngrade) {
-    btnPriceDowngrade.addEventListener('click', async () => {
-      const res = await apiCall('/billing/downgrade', 'POST');
-      if (res && res.success && res.data) {
-        state.user = res.data.user;
-        localStorage.setItem('folio_user_profile', JSON.stringify(state.user));
-        updateUserInterface();
-        showToast('Moved to Free Tier.', 'info');
-        btnPriceDowngrade.style.display = 'none';
-      }
-    });
-  }
+  if (btnReopen) btnReopen.addEventListener('click', () => { closeAllStatusModals(); openPaymentModal(currentCheckoutPlan); });
 }
 
 // --- PAYMENT PROCESSING & MODAL CONTROLLERS ---
-function openPaymentModal() {
+function openPaymentModal(planType = 'monthly') {
   const modal = document.getElementById('payment-modal');
   if (!modal) return;
 
-  const cardNameInput = document.getElementById('pay-card-name');
-  if (cardNameInput && state.user && state.user.name) {
-    cardNameInput.value = state.user.name;
+  currentCheckoutPlan = (planType === 'annual') ? 'annual' : 'monthly';
+
+  const planTitle = document.getElementById('checkout-plan-title');
+  const planSub = document.getElementById('checkout-plan-subtitle');
+  const amountDisp = document.getElementById('checkout-amount-display');
+  const periodDisp = document.getElementById('checkout-period-display');
+  const upiAmountText = document.getElementById('upi-amount-text');
+  const utrInput = document.getElementById('pay-upi-utr');
+
+  if (utrInput) utrInput.value = '';
+
+  if (currentCheckoutPlan === 'annual') {
+    if (planTitle) planTitle.textContent = 'Folio Premium Annual';
+    if (planSub) planSub.textContent = 'Best Value — Full access to all AI features & templates for 1 year';
+    if (amountDisp) amountDisp.textContent = '1,999';
+    if (periodDisp) periodDisp.textContent = '/ year';
+    if (upiAmountText) upiAmountText.textContent = '₹1,999';
+  } else {
+    if (planTitle) planTitle.textContent = 'Folio Premium Monthly';
+    if (planSub) planSub.textContent = 'Full access to all AI features & templates for 1 month';
+    if (amountDisp) amountDisp.textContent = '199';
+    if (periodDisp) periodDisp.textContent = '/ month';
+    if (upiAmountText) upiAmountText.textContent = '₹199';
   }
-
-  // Activate UPI / PhonePe tab by default
-  const payTabs = document.querySelectorAll('.pay-tab');
-  const payPanels = {
-    card: document.getElementById('form-pay-card'),
-    upi: document.getElementById('form-pay-upi'),
-    netbanking: document.getElementById('form-pay-netbanking'),
-    wallet: document.getElementById('form-pay-wallet')
-  };
-
-  payTabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-pay-method') === 'upi'));
-  Object.keys(payPanels).forEach(k => {
-    if (payPanels[k]) payPanels[k].classList.toggle('active', k === 'upi');
-  });
 
   // Render user uploaded PhonePe QR Code for UPI
   const qrBox = document.getElementById('dynamic-qr-box');
@@ -2795,58 +2635,6 @@ function openPaymentModal() {
   }
 
   modal.classList.add('active');
-}
-
-function generateDynamicUPIQRCodeSVG(text, size = 180) {
-  // Pure JavaScript QR Code vector SVG renderer for standard UPI Payment URIs
-  const modules = 21; // Version 1 QR matrix
-  const matrix = Array.from({ length: modules }, () => Array(modules).fill(false));
-
-  function setFinderPattern(r0, c0) {
-    for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 7; c++) {
-        if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
-          matrix[r0 + r][c0 + c] = true;
-        }
-      }
-    }
-  }
-
-  setFinderPattern(0, 0);
-  setFinderPattern(0, modules - 7);
-  setFinderPattern(modules - 7, 0);
-
-  // Simple deterministic payload pattern mapping
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash << 5) - hash + text.charCodeAt(i);
-    hash |= 0;
-  }
-
-  for (let r = 0; r < modules; r++) {
-    for (let c = 0; c < modules; c++) {
-      if ((r < 7 && c < 7) || (r < 7 && c >= modules - 7) || (r >= modules - 7 && c < 7)) continue;
-      const val = Math.abs((r * 19 + c * 31 + hash) % 3);
-      matrix[r][c] = (val === 0 || (r + c) % 2 === 0);
-    }
-  }
-
-  const cellSize = (size / modules).toFixed(2);
-  let rects = '';
-  for (let r = 0; r < modules; r++) {
-    for (let c = 0; c < modules; c++) {
-      if (matrix[r][c]) {
-        const isFinder = (r < 7 && c < 7) || (r < 7 && c >= 14) || (r >= 14 && c < 7);
-        const fill = isFinder ? '#0f172a' : '#2563eb';
-        rects += `<rect x="${(c * cellSize)}" y="${(r * cellSize)}" width="${cellSize}" height="${cellSize}" fill="${fill}"/>`;
-      }
-    }
-  }
-
-  return `<svg viewBox="0 0 ${size} ${size}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-    <rect width="${size}" height="${size}" fill="#ffffff" rx="8"/>
-    ${rects}
-  </svg>`;
 }
 
 function closePaymentModal() {
@@ -2861,22 +2649,8 @@ function openPaymentFailedModal(errorMsg, txId) {
   const modal = document.getElementById('payment-failed-modal');
   const desc = document.getElementById('failed-modal-desc');
   const txCode = document.getElementById('failed-tx-id');
-  if (desc) desc.textContent = errorMsg || 'The transaction was declined by your bank or payment gateway.';
-  if (txCode) txCode.textContent = txId || 'TXN_FAILED';
-  if (modal) modal.classList.add('active');
-}
-
-function openPaymentPendingModal(txId) {
-  closePaymentModal();
-  const modal = document.getElementById('payment-pending-modal');
-  const txCode = document.getElementById('pending-tx-id');
-  if (txCode) txCode.textContent = txId || 'TXN_PENDING';
-  if (modal) modal.classList.add('active');
-}
-
-function openPaymentCancelledModal() {
-  closePaymentModal();
-  const modal = document.getElementById('payment-cancelled-modal');
+  if (desc) desc.textContent = errorMsg || 'Payment verification could not be completed.';
+  if (txCode) txCode.textContent = txId || 'TXN_UNVERIFIED';
   if (modal) modal.classList.add('active');
 }
 
@@ -2885,15 +2659,16 @@ function openReceiptModal(receipt) {
   const body = document.getElementById('receipt-details-body');
   if (!modal || !body) return;
 
+  const isAnnual = (receipt && receipt.plan && receipt.plan.toLowerCase().includes('annual'));
   const r = receipt || {
     transaction_id: 'TXN_' + Math.random().toString(36).substring(2, 10).toUpperCase(),
-    amount: 20,
+    amount: isAnnual ? 1999 : 199,
     currency: 'INR',
     method: 'UPI',
-    bank_or_provider: 'Unified Payments Interface',
-    plan: 'Premium Pro (Lifetime)',
+    bank_or_provider: 'UPI Network',
+    plan: isAnnual ? 'Premium Annual' : 'Premium Monthly',
     timestamp: new Date().toLocaleString(),
-    status: 'SUCCESSFUL',
+    status: 'Payment submitted for verification',
     customer_name: (state.user && state.user.name) || 'Valued Customer',
     customer_email: (state.user && state.user.email) || 'user@example.com'
   };
@@ -2901,7 +2676,7 @@ function openReceiptModal(receipt) {
   body.innerHTML = `
     <div class="receipt-table">
       <div class="receipt-row">
-        <span class="receipt-label">Transaction ID</span>
+        <span class="receipt-label">Transaction Reference</span>
         <span class="receipt-val">${r.transaction_id}</span>
       </div>
       <div class="receipt-row">
@@ -2925,11 +2700,11 @@ function openReceiptModal(receipt) {
         <span class="receipt-val">${r.timestamp}</span>
       </div>
       <div class="receipt-row">
-        <span class="receipt-label">Amount Paid</span>
+        <span class="receipt-label">Amount</span>
         <span class="receipt-val" style="color: var(--primary); font-size: 1.05rem;">₹${r.amount}.00 ${r.currency}</span>
       </div>
       <div class="receipt-row">
-        <span class="receipt-label">Payment Status</span>
+        <span class="receipt-label">Verification Status</span>
         <span class="receipt-val" style="color: var(--ats-excellent); font-weight: 700;">● ${r.status}</span>
       </div>
     </div>
@@ -2943,23 +2718,6 @@ function closeReceiptModal() {
   if (modal) modal.classList.remove('active');
 }
 
-function detectCardBrand(clean) {
-  if (/^4/.test(clean)) return 'visa';
-  if (/^(5[1-5]|2[2-7])/.test(clean)) return 'mastercard';
-  if (/^(60|65|81|82|508)/.test(clean)) return 'rupay';
-  if (/^(34|37)/.test(clean)) return 'amex';
-  return 'visa';
-}
-
-function formatCardNumber(val) {
-  const clean = val.replace(/\D/g, '').substring(0, 16);
-  const parts = [];
-  for (let i = 0; i < clean.length; i += 4) {
-    parts.push(clean.substring(i, i + 4));
-  }
-  return parts.join(' ');
-}
-
 async function executePayment(paymentDetails) {
   const overlay = document.getElementById('payment-processing-overlay');
   const title = document.getElementById('proc-status-title');
@@ -2967,18 +2725,18 @@ async function executePayment(paymentDetails) {
   const fill = document.getElementById('proc-progress-fill');
 
   if (overlay) overlay.style.display = 'flex';
-  if (fill) fill.style.width = '25%';
-  if (title) title.textContent = 'Connecting to Secure Banking Gateway...';
-  if (desc) desc.textContent = 'Establishing 256-bit encrypted channel with payment provider.';
+  if (fill) fill.style.width = '30%';
+  if (title) title.textContent = 'Submitting Payment Information...';
+  if (desc) desc.textContent = 'Submitting transaction reference for verification.';
 
-  await new Promise(r => setTimeout(r, 500));
-  if (title) title.textContent = 'Verifying Payment Authorization...';
-  if (desc) desc.textContent = `Authenticating transaction with ${paymentDetails.bank || 'Banking Network'}...`;
-  if (fill) fill.style.width = '65%';
+  await new Promise(r => setTimeout(r, 400));
+  if (title) title.textContent = 'Verifying Reference...';
+  if (desc) desc.textContent = 'Processing UTR reference number...';
+  if (fill) fill.style.width = '70%';
 
-  await new Promise(r => setTimeout(r, 500));
-  if (title) title.textContent = 'Finalizing Payment...';
-  if (desc) desc.textContent = 'Securing transaction token and updating plan...';
+  await new Promise(r => setTimeout(r, 400));
+  if (title) title.textContent = 'Upgrading Account...';
+  if (desc) desc.textContent = 'Updating your subscription plan...';
   if (fill) fill.style.width = '90%';
 
   const res = await apiCall('/billing/verify-payment', 'POST', paymentDetails);
@@ -3000,11 +2758,10 @@ async function executePayment(paymentDetails) {
     updateUserInterface();
     closePaymentModal();
     openReceiptModal(res.data.receipt);
-    showToast('Payment Verified with Banking Gateway! Premium Pro Activated ⭐', 'success');
+    showToast('Payment submitted for verification. Account upgraded to Premium ⭐', 'success');
   } else {
-    // Payment verification failed - DO NOT upgrade plan!
-    const errorMsg = (res && res.error) || 'Payment transaction could not be verified with banking gateway.';
-    openPaymentFailedModal(errorMsg, paymentDetails.utr || paymentDetails.payment_id || 'TXN_UNVERIFIED');
+    const errorMsg = (res && res.error) || 'Payment submission could not be processed.';
+    openPaymentFailedModal(errorMsg, paymentDetails.utr || 'TXN_UNVERIFIED');
     showToast(errorMsg, 'error');
   }
 }

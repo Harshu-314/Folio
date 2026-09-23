@@ -66,7 +66,7 @@
           <span class="avatar-circle" id="user-avatar-initials">AD</span>
           <span class="user-greeting" id="user-display-name">Alex Dev</span>
         </button>
-        <button class="btn btn-secondary btn-sm" id="btn-open-upgrade">Upgrade (₹20)</button>
+        <button class="btn btn-secondary btn-sm" id="btn-open-upgrade">Upgrade to Premium</button>
         <button class="btn btn-ghost btn-sm btn-icon" id="btn-logout" title="Sign Out">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
@@ -314,27 +314,27 @@
             <div class="form-grid dual">
               <div class="form-group">
                 <label for="wiz-name">Full Name *</label>
-                <input type="text" id="wiz-name" placeholder="e.g. Asha Rao" value="Asha Rao">
+                <input type="text" id="wiz-name" placeholder="Enter your full name" value="">
               </div>
               <div class="form-group">
                 <label for="wiz-email">Email Address *</label>
-                <input type="email" id="wiz-email" placeholder="asha.rao@example.com" value="asha.rao@example.com">
+                <input type="email" id="wiz-email" placeholder="Enter your email address" value="">
               </div>
               <div class="form-group">
                 <label for="wiz-phone">Phone Number</label>
-                <input type="text" id="wiz-phone" placeholder="+91 90000 00000" value="+91 90000 00000">
+                <input type="text" id="wiz-phone" placeholder="Enter your phone number" value="">
               </div>
               <div class="form-group">
                 <label for="wiz-location">Location (City, Country)</label>
-                <input type="text" id="wiz-location" placeholder="Hyderabad, India" value="Hyderabad, India">
+                <input type="text" id="wiz-location" placeholder="Enter your city, country" value="">
               </div>
               <div class="form-group">
                 <label for="wiz-linkedin">LinkedIn URL</label>
-                <input type="text" id="wiz-linkedin" placeholder="linkedin.com/in/asharao" value="linkedin.com/in/asharao">
+                <input type="text" id="wiz-linkedin" placeholder="https://linkedin.com/in/yourname" value="">
               </div>
               <div class="form-group">
                 <label for="wiz-portfolio">Portfolio / GitHub</label>
-                <input type="text" id="wiz-portfolio" placeholder="asharao.dev" value="asharao.dev">
+                <input type="text" id="wiz-portfolio" placeholder="https://github.com/yourname" value="">
               </div>
             </div>
           </div>
@@ -344,13 +344,13 @@
             <h3>Step 2: Target Position</h3>
             <div class="form-group">
               <label for="wiz-target-title">Target Job Title *</label>
-              <input type="text" id="wiz-target-title" placeholder="e.g. Backend Developer / Full Stack Engineer" value="Backend Developer">
+              <input type="text" id="wiz-target-title" placeholder="e.g. Backend Developer / Full Stack Engineer" value="">
               <span class="field-hint">The AI will align summary and bullet points to match this target role.</span>
             </div>
 
             <div class="form-group margin-top">
               <label for="wiz-career-summary-notes">Raw Professional Summary / Career Goals (Optional)</label>
-              <textarea id="wiz-career-summary-notes" rows="3" placeholder="Briefly describe your career focus or key achievements...">Final-year CS student with 3 full-stack projects and backend intern experience building REST APIs.</textarea>
+              <textarea id="wiz-career-summary-notes" rows="3" placeholder="Briefly describe your career focus or key achievements..."></textarea>
             </div>
           </div>
 
@@ -361,22 +361,21 @@
             
             <div class="form-group">
               <label for="wiz-exp-role">Role Title</label>
-              <input type="text" id="wiz-exp-role" value="Backend Developer Intern">
+              <input type="text" id="wiz-exp-role" placeholder="e.g. Software Developer Intern" value="">
             </div>
             <div class="form-grid dual">
               <div class="form-group">
                 <label for="wiz-exp-company">Company</label>
-                <input type="text" id="wiz-exp-company" value="TechNova Pvt Ltd">
+                <input type="text" id="wiz-exp-company" placeholder="e.g. Tech Solutions" value="">
               </div>
               <div class="form-group">
                 <label for="wiz-exp-duration">Duration</label>
-                <input type="text" id="wiz-exp-duration" value="May 2025 - Jul 2025">
+                <input type="text" id="wiz-exp-duration" placeholder="e.g. May 2025 - Jul 2025" value="">
               </div>
             </div>
             <div class="form-group">
               <label for="wiz-exp-notes">Raw Notes &amp; Achievements (One per line)</label>
-              <textarea id="wiz-exp-notes" rows="4" placeholder="Built 12 REST endpoints used by internal teams&#10;Reduced API response time by adding DB indexes">Built 12 REST API endpoints used by 3 internal teams, cutting reporting time by 40%
-Reduced average API response time by 220ms by adding database indexes and caching</textarea>
+              <textarea id="wiz-exp-notes" rows="4" placeholder="Built REST endpoints used by internal teams&#10;Reduced API response time by adding DB indexes"></textarea>
             </div>
           </div>
 
@@ -386,26 +385,26 @@ Reduced average API response time by 220ms by adding database indexes and cachin
             <div class="form-grid dual">
               <div class="form-group">
                 <label for="wiz-edu-degree">Degree / Field of Study</label>
-                <input type="text" id="wiz-edu-degree" value="B.Tech in Computer Science">
+                <input type="text" id="wiz-edu-degree" placeholder="e.g. B.Tech in Computer Science" value="">
               </div>
               <div class="form-group">
                 <label for="wiz-edu-inst">Institution</label>
-                <input type="text" id="wiz-edu-inst" value="JNTU Hyderabad">
+                <input type="text" id="wiz-edu-inst" placeholder="e.g. University Name" value="">
               </div>
             </div>
             <div class="form-grid dual">
               <div class="form-group">
                 <label for="wiz-edu-duration">Year / Duration</label>
-                <input type="text" id="wiz-edu-duration" value="2022 - 2026">
+                <input type="text" id="wiz-edu-duration" placeholder="e.g. 2022 - 2026" value="">
               </div>
               <div class="form-group">
                 <label for="wiz-edu-details">GPA / Honors</label>
-                <input type="text" id="wiz-edu-details" value="CGPA: 8.7 / 10">
+                <input type="text" id="wiz-edu-details" placeholder="e.g. CGPA: 8.5 / 10" value="">
               </div>
             </div>
             <div class="form-group margin-top">
               <label for="wiz-skills-list">Skills (Comma-separated)</label>
-              <input type="text" id="wiz-skills-list" value="Python, Flask, JavaScript, SQL, REST APIs, Git, Docker">
+              <input type="text" id="wiz-skills-list" placeholder="e.g. Python, Flask, JavaScript, SQL, Git" value="">
             </div>
           </div>
 
@@ -413,9 +412,9 @@ Reduced average API response time by 220ms by adding database indexes and cachin
           <div class="wizard-step-content" id="wiz-step-5">
             <h3>Step 5: Review &amp; Generate Resume</h3>
             <div class="wizard-summary-box">
-              <div class="sum-item"><strong>Candidate:</strong> <span id="wiz-sum-name">Asha Rao</span></div>
-              <div class="sum-item"><strong>Target Role:</strong> <span id="wiz-sum-role">Backend Developer</span></div>
-              <div class="sum-item"><strong>Primary Skills:</strong> <span id="wiz-sum-skills">Python, Flask, SQL...</span></div>
+              <div class="sum-item"><strong>Candidate:</strong> <span id="wiz-sum-name">--</span></div>
+              <div class="sum-item"><strong>Target Role:</strong> <span id="wiz-sum-role">--</span></div>
+              <div class="sum-item"><strong>Primary Skills:</strong> <span id="wiz-sum-skills">--</span></div>
             </div>
 
             <div class="form-group margin-top">
@@ -509,6 +508,7 @@ Reduced average API response time by 220ms by adding database indexes and cachin
               <button class="editor-tab-btn" data-sec="sec-education">Education</button>
               <button class="editor-tab-btn" data-sec="sec-skills">Skills</button>
               <button class="editor-tab-btn" data-sec="sec-certifications">Certs</button>
+              <button class="editor-tab-btn" data-sec="sec-custom">+ Custom Sections</button>
               <button class="editor-tab-btn" data-sec="sec-cv">CV Sections</button>
               <button class="editor-tab-btn" data-sec="sec-target">Target Job</button>
             </div>
@@ -521,6 +521,24 @@ Reduced average API response time by 220ms by adding database indexes and cachin
                 <div class="section-title-bar">
                   <h3>Personal Contact Information</h3>
                 </div>
+
+                <!-- Profile Photo Upload for Resumes -->
+                <div class="form-group margin-bottom" style="margin-bottom: 16px;">
+                  <label>Profile Photo (For Photo Resume Templates)</label>
+                  <div class="photo-upload-row">
+                    <img src="" id="studio-photo-preview" class="photo-preview-avatar" style="display: none;" alt="Resume Photo">
+                    <div class="photo-avatar-placeholder" id="studio-photo-placeholder" style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">👤</div>
+                    <div class="photo-upload-controls">
+                      <label for="studio-photo-file-input" class="btn-upload-label">
+                        <span>📷 Choose Photo</span>
+                      </label>
+                      <input type="file" id="studio-photo-file-input" accept="image/*" style="display: none;">
+                      <button type="button" class="btn btn-ghost btn-xs" id="btn-remove-studio-photo" style="display: none; width: fit-content;">Remove Photo</button>
+                      <span class="photo-hint">Used automatically in templates supporting profile photos.</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="form-grid dual">
                   <div class="form-group">
                     <label for="ed-name">Full Name</label>
@@ -613,6 +631,20 @@ Reduced average API response time by 220ms by adding database indexes and cachin
                 <div class="form-group">
                   <label for="ed-certs">Enter certifications (one per line)</label>
                   <textarea id="ed-certs" class="sync-input" data-path="certs_lines" rows="4" placeholder="AWS Certified Developer&#10;Google Data Analytics Certificate"></textarea>
+                </div>
+              </div>
+
+              <!-- SECTION: CUSTOM SECTIONS -->
+              <div class="editor-section-panel" id="sec-custom">
+                <div class="section-title-bar">
+                  <h3>Custom Resume Sections</h3>
+                  <button class="btn btn-outline btn-xs" id="btn-add-custom-section">+ Add Custom Section</button>
+                </div>
+                <p class="field-hint" style="margin-bottom:14px; font-size:0.8rem; color:var(--text-muted);">
+                  Add custom headings (e.g., Key Achievements, AI/ML Projects, Research Experience, Publications, Volunteer Work, Leadership). Custom sections render dynamically in live preview and PDF.
+                </p>
+                <div id="custom-sections-container" class="repeater-container">
+                  <!-- Dynamically rendered custom sections -->
                 </div>
               </div>
 
@@ -903,36 +935,55 @@ Reduced average API response time by 220ms by adding database indexes and cachin
         <div class="pricing-cards-grid">
           <!-- Free Plan -->
           <div class="pricing-card">
-            <div class="card-tier">Free Tier</div>
-            <div class="card-price">₹0 <span>/ forever</span></div>
-            <p class="tier-desc">Perfect for building and downloading your first ATS-proven resume.</p>
+            <div class="card-tier">FREE</div>
+            <div class="card-price">₹0</div>
+            <p class="tier-desc">Essential tools for building your ATS-friendly resume.</p>
             <ul class="tier-features">
-              <li>✓ Unlimited Single-Column PDF Exports</li>
-              <li>✓ 3 Free Deterministic ATS Checks</li>
-              <li>✓ All 3 Minimalist Templates</li>
-              <li>✓ Inline AI Bullet Polishing</li>
+              <li>✓ Basic resume creation</li>
+              <li>✓ Basic templates</li>
+              <li>✓ Limited AI features</li>
+              <li>✓ Basic ATS analysis</li>
+              <li>✓ PDF export</li>
             </ul>
             <button class="btn btn-outline btn-block" id="btn-price-free" disabled>Current Tier</button>
           </div>
 
-          <!-- Premium Plan -->
+          <!-- Premium Monthly Plan -->
           <div class="pricing-card featured">
             <div class="featured-badge">MOST POPULAR</div>
-            <div class="card-tier">Premium Pro</div>
-            <div class="card-price">₹20 <span>/ month</span></div>
-            <p class="tier-desc">For active job applicants needing unlimited ATS audits and cover letters.</p>
+            <div class="card-tier">PREMIUM MONTHLY</div>
+            <div class="card-price">₹199 <span>/ month</span></div>
+            <p class="tier-desc">Complete AI power for active job application campaigns.</p>
             <ul class="tier-features">
-              <li>✓ Everything in Free Tier</li>
-              <li>✓ <strong>Unlimited ATS Checks</strong></li>
-              <li>✓ <strong>AI Recruiter Advisor Feedback</strong></li>
-              <li>✓ <strong>AI Cover Letter Generator</strong></li>
-              <li>✓ Priority AI Processing</li>
+              <li>✓ All templates</li>
+              <li>✓ Advanced AI features</li>
+              <li>✓ AI Resume Advisor</li>
+              <li>✓ AI bullet improvement</li>
+              <li>✓ Advanced ATS analysis</li>
+              <li>✓ AI Cover Letter</li>
+              <li>✓ AI Recruiter Assistant</li>
+              <li>✓ Higher AI usage limits</li>
             </ul>
-            <button class="btn btn-primary btn-block btn-sparkle" id="btn-price-upgrade">
-              <span>Upgrade to Premium (₹20)</span>
+            <button class="btn btn-primary btn-block btn-sparkle btn-price-upgrade-action" id="btn-price-upgrade-monthly" data-plan="monthly">
+              <span>Upgrade Monthly (₹199/mo)</span>
             </button>
-            <button class="btn btn-ghost btn-xs btn-block margin-top" id="btn-price-downgrade" style="display:none;">
-              Downgrade to Free Tier (Demo)
+          </div>
+
+          <!-- Premium Annual Plan -->
+          <div class="pricing-card best-value">
+            <div class="best-value-badge">BEST VALUE</div>
+            <div class="card-tier">PREMIUM ANNUAL</div>
+            <div class="card-price">₹1,999 <span>/ year</span></div>
+            <div class="card-subtext">Save ₹389/year (About ₹167/month)</div>
+            <p class="tier-desc">Maximum savings for long-term career growth.</p>
+            <ul class="tier-features">
+              <li>✓ Everything in Premium</li>
+              <li>✓ Save ₹389/year</li>
+              <li>✓ Equivalent to about ₹167/month</li>
+              <li>✓ All templates & AI features included</li>
+            </ul>
+            <button class="btn btn-primary btn-block btn-sparkle btn-price-upgrade-action" id="btn-price-upgrade-annual" data-plan="annual">
+              <span>Upgrade Annual (₹1,999/yr)</span>
             </button>
           </div>
         </div>
@@ -1088,7 +1139,7 @@ Reduced average API response time by 220ms by adding database indexes and cachin
           </p>
           <div class="form-group">
             <label for="forgot-email-input">Email Address</label>
-            <input type="email" id="forgot-email-input" required placeholder="asha@example.com">
+            <input type="email" id="forgot-email-input" required placeholder="your.email@example.com">
           </div>
           <button type="submit" class="btn btn-primary btn-block margin-top">Send Reset Code</button>
         </form>
@@ -1192,11 +1243,11 @@ Reduced average API response time by 220ms by adding database indexes and cachin
         <form id="form-register" class="auth-form">
           <div class="form-group">
             <label for="reg-name">Full Name</label>
-            <input type="text" id="reg-name" required placeholder="Asha Rao">
+            <input type="text" id="reg-name" required placeholder="Enter your full name">
           </div>
           <div class="form-group">
             <label for="reg-email">Email Address</label>
-            <input type="email" id="reg-email" required placeholder="asha@example.com">
+            <input type="email" id="reg-email" required placeholder="your.email@example.com">
             <p class="field-note">Use your real email — temporary/disposable addresses are rejected.</p>
           </div>
           <div class="form-group">
@@ -1233,219 +1284,43 @@ Reduced average API response time by 220ms by adding database indexes and cachin
         </div>
         <div class="checkout-title-row">
           <div>
-            <h3 class="checkout-title">Folio Premium Pro Upgrade</h3>
-            <p class="checkout-subtitle">Lifetime access & unlimited AI generation</p>
+            <h3 class="checkout-title" id="checkout-plan-title">Folio Premium Upgrade</h3>
+            <p class="checkout-subtitle" id="checkout-plan-subtitle">Full access to all AI features and templates</p>
           </div>
           <div class="checkout-price-box">
             <span class="currency">₹</span>
-            <span class="amount">20</span>
-            <span class="period">one-time</span>
+            <span class="amount" id="checkout-amount-display">199</span>
+            <span class="period" id="checkout-period-display">/ month</span>
           </div>
         </div>
       </div>
 
       <!-- Main Checkout Body -->
       <div class="checkout-body">
-        <!-- Payment Methods Sidebar / Tabs -->
-        <div class="payment-tabs">
-          <button class="pay-tab active" data-pay-method="upi">
-            <span class="pay-tab-icon">📱</span>
-            <span class="pay-tab-text">UPI / PhonePe QR</span>
-          </button>
-          <button class="pay-tab" data-pay-method="card">
-            <span class="pay-tab-icon">💳</span>
-            <span class="pay-tab-text">Credit / Debit Card</span>
-          </button>
-          <button class="pay-tab" data-pay-method="netbanking">
-            <span class="pay-tab-icon">🏛️</span>
-            <span class="pay-tab-text">Net Banking</span>
-          </button>
-          <button class="pay-tab" data-pay-method="wallet">
-            <span class="pay-tab-icon">👛</span>
-            <span class="pay-tab-text">Wallets</span>
-          </button>
-        </div>
-
-        <!-- Payment Content Panels -->
+        <!-- UPI Payment Content Panel -->
         <div class="payment-panels">
-          
-          <!-- 1. CARD FORM -->
-          <form id="form-pay-card" class="pay-form-panel">
-            <div class="card-brand-bar">
-              <span class="card-type-label">Accepted Cards:</span>
-              <div class="card-icons">
-                <span class="card-chip active" id="chip-visa">VISA</span>
-                <span class="card-chip" id="chip-mastercard">Mastercard</span>
-                <span class="card-chip" id="chip-rupay">RuPay</span>
-                <span class="card-chip" id="chip-amex">AMEX</span>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="pay-card-number">Card Number</label>
-              <div class="input-with-icon">
-                <input type="text" id="pay-card-number" placeholder="4532 •••• •••• 8892" maxlength="19" required>
-                <span class="input-card-brand" id="input-card-brand-badge">💳</span>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="pay-card-name">Cardholder Name</label>
-              <input type="text" id="pay-card-name" placeholder="Asha Rao" required>
-            </div>
-
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="pay-card-expiry">Expiry Date</label>
-                <input type="text" id="pay-card-expiry" placeholder="MM / YY" maxlength="5" required>
-              </div>
-              <div class="form-group">
-                <label for="pay-card-cvv">CVV / CVC</label>
-                <input type="password" id="pay-card-cvv" placeholder="•••" maxlength="4" required>
-              </div>
-            </div>
-
-            <div class="checkout-test-helper">
-              <button type="button" class="btn-test-fill" id="btn-fill-test-card">⚡ Autofill Test Card</button>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block btn-pay-action">
-              <span>Pay ₹20.00 Securely</span>
-              <span class="lock-icon">🔒</span>
-            </button>
-          </form>
-
-          <!-- 2. UPI FORM -->
           <form id="form-pay-upi" class="pay-form-panel active">
             <div class="upi-qr-section">
               <div class="upi-qr-wrapper">
                 <div class="qr-scanner-box" id="dynamic-qr-box">
                   <img src="/images/upi_qr1.jpeg" alt="PhonePe UPI Scan & Pay QR Code" class="upi-qr-image">
                 </div>
-                <div class="qr-timer-badge">⏱️ Scan with PhonePe / GPay / Paytm</div>
+                <div class="qr-timer-badge">⏱️ Scan with PhonePe / GPay / Paytm / BHIM</div>
               </div>
-              <p class="upi-helper-text">Scan & Pay ₹20 using <strong>PhonePe</strong>, <strong>Google Pay</strong>, <strong>Paytm</strong>, or <strong>BHIM UPI</strong></p>
+              <p class="upi-helper-text">Scan the QR code with any UPI App and complete the payment of <strong id="upi-amount-text">₹199</strong>.</p>
             </div>
 
             <div class="form-group" style="margin: 16px 0;">
               <label for="pay-upi-utr">12-Digit UPI UTR / Transaction Ref No. <span style="color: red;">*</span></label>
-              <input type="text" id="pay-upi-utr" placeholder="e.g. 423819028491 (from PhonePe/GPay receipt)" maxlength="16" required style="font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.5px;">
-              <span class="field-note" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Enter the 12-digit UTR number from your PhonePe / GPay receipt after scanning to verify payment.</span>
+              <input type="text" id="pay-upi-utr" placeholder="e.g. 423819028491 (from UPI payment receipt)" maxlength="16" required style="font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.5px;">
+              <span class="field-note" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Enter the 12-digit UTR / Reference number from your payment receipt to submit for verification.</span>
             </div>
 
             <button type="submit" class="btn btn-primary btn-block btn-pay-action btn-sparkle" id="btn-confirm-upi-paid">
-              <span>Verify Payment & Activate Premium Pro</span>
-              <span class="lock-icon">🔒</span>
-            </button>
-
-            <div class="divider-text"><span>OR ENTER VPA FOR DIRECT UPI CHECKOUT</span></div>
-
-            <div class="form-group">
-              <label for="pay-upi-id">Virtual Payment Address (VPA)</label>
-              <div class="upi-input-group">
-                <input type="text" id="pay-upi-id" placeholder="username@upi / mobile@okhdfcbank">
-                <button type="button" class="btn btn-secondary btn-sm" id="btn-verify-upi">Verify VPA</button>
-              </div>
-              <span class="upi-verified-badge" id="upi-verified-badge" style="display: none;">✓ UPI ID Verified</span>
-            </div>
-          </form>
-
-          <!-- 3. NET BANKING FORM -->
-          <form id="form-pay-netbanking" class="pay-form-panel">
-            <label class="section-label">Popular Banks</label>
-            <div class="bank-grid">
-              <label class="bank-card">
-                <input type="radio" name="selected_bank" value="HDFC Bank" checked>
-                <div class="bank-content">
-                  <span class="bank-logo-text">HDFC</span>
-                  <span class="bank-name">HDFC Bank</span>
-                </div>
-              </label>
-              <label class="bank-card">
-                <input type="radio" name="selected_bank" value="State Bank of India">
-                <div class="bank-content">
-                  <span class="bank-logo-text">SBI</span>
-                  <span class="bank-name">State Bank</span>
-                </div>
-              </label>
-              <label class="bank-card">
-                <input type="radio" name="selected_bank" value="ICICI Bank">
-                <div class="bank-content">
-                  <span class="bank-logo-text">ICICI</span>
-                  <span class="bank-name">ICICI Bank</span>
-                </div>
-              </label>
-              <label class="bank-card">
-                <input type="radio" name="selected_bank" value="Axis Bank">
-                <div class="bank-content">
-                  <span class="bank-logo-text">AXIS</span>
-                  <span class="bank-name">Axis Bank</span>
-                </div>
-              </label>
-            </div>
-
-            <div class="form-group margin-top">
-              <label for="pay-all-banks">All Indian & Global Banks</label>
-              <select id="pay-all-banks">
-                <option value="">-- Choose Other Bank --</option>
-                <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
-                <option value="Punjab National Bank">Punjab National Bank</option>
-                <option value="Bank of Baroda">Bank of Baroda</option>
-                <option value="Canara Bank">Canara Bank</option>
-                <option value="Union Bank of India">Union Bank of India</option>
-                <option value="IndusInd Bank">IndusInd Bank</option>
-                <option value="Federal Bank">Federal Bank</option>
-                <option value="IDFC FIRST Bank">IDFC FIRST Bank</option>
-              </select>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block btn-pay-action margin-top">
-              <span>Proceed to Net Banking (₹20.00)</span>
+              <span>Submit Payment for Verification</span>
               <span class="lock-icon">🔒</span>
             </button>
           </form>
-
-          <!-- 4. WALLETS FORM -->
-          <form id="form-pay-wallet" class="pay-form-panel">
-            <div class="wallet-list">
-              <label class="wallet-item">
-                <input type="radio" name="selected_wallet" value="Paytm Wallet" checked>
-                <div class="wallet-info">
-                  <span class="wallet-icon">📱</span>
-                  <div>
-                    <span class="wallet-title">Paytm Wallet</span>
-                    <span class="wallet-sub">Instant 1-click checkout</span>
-                  </div>
-                </div>
-              </label>
-              <label class="wallet-item">
-                <input type="radio" name="selected_wallet" value="Amazon Pay">
-                <div class="wallet-info">
-                  <span class="wallet-icon">📦</span>
-                  <div>
-                    <span class="wallet-title">Amazon Pay</span>
-                    <span class="wallet-sub">Use Amazon Pay balance</span>
-                  </div>
-                </div>
-              </label>
-              <label class="wallet-item">
-                <input type="radio" name="selected_wallet" value="PhonePe Wallet">
-                <div class="wallet-info">
-                  <span class="wallet-icon">🟣</span>
-                  <div>
-                    <span class="wallet-title">PhonePe Wallet</span>
-                    <span class="wallet-sub">PhonePe linked balance</span>
-                  </div>
-                </div>
-              </label>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block btn-pay-action margin-top">
-              <span>Pay ₹20.00 from Wallet</span>
-              <span class="lock-icon">🔒</span>
-            </button>
-          </form>
-
         </div>
       </div>
 
@@ -1453,10 +1328,10 @@ Reduced average API response time by 220ms by adding database indexes and cachin
       <div class="payment-processing-overlay" id="payment-processing-overlay" style="display: none;">
         <div class="processing-card">
           <div class="processing-spinner"></div>
-          <h4 id="proc-status-title">Securing Bank Authorization...</h4>
-          <p id="proc-status-desc">Communicating with banking gateway. Please do not refresh.</p>
+          <h4 id="proc-status-title">Submitting Payment Information...</h4>
+          <p id="proc-status-desc">Payment submitted for verification. Please wait...</p>
           <div class="proc-progress-bar"><div class="proc-progress-fill" id="proc-progress-fill"></div></div>
-          <div class="proc-security-badge">🔒 256-Bit Bank Grade Encryption</div>
+          <div class="proc-security-badge">🔒 256-Bit SSL Encryption</div>
         </div>
       </div>
 
@@ -1540,6 +1415,23 @@ Reduced average API response time by 220ms by adding database indexes and cachin
         <div class="modal-body modal-grid-2">
           
           <div class="form-section-title span-2">Personal Information</div>
+
+          <!-- Profile Photo Upload in Edit Profile Modal -->
+          <div class="form-group span-2">
+            <label>Profile Photo</label>
+            <div class="photo-upload-row">
+              <img src="" id="edit-photo-preview" class="photo-preview-avatar" style="display: none;" alt="Profile Photo">
+              <div class="photo-avatar-placeholder" id="edit-photo-placeholder" style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">👤</div>
+              <div class="photo-upload-controls">
+                <label for="edit-photo-file-input" class="btn-upload-label">
+                  <span>📷 Upload Profile Picture</span>
+                </label>
+                <input type="file" id="edit-photo-file-input" accept="image/*" style="display: none;">
+                <button type="button" class="btn btn-ghost btn-xs" id="btn-remove-profile-photo" style="display: none; width: fit-content;">Remove Photo</button>
+                <span class="photo-hint">Supports JPG, PNG or WEBP. Used in profile header & photo templates.</span>
+              </div>
+            </div>
+          </div>
 
           <div class="form-group">
             <label for="edit-name">Full Name *</label>

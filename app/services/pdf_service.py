@@ -35,8 +35,61 @@ MARGIN = 18
 # title_style: "underline" | "boxed" | "plain"  (section title decoration)
 # header_align: "left" | "center"  (name/header alignment, single/timeline layouts)
 
+    # ---------------- 10 STRUCTURAL PREMIUM TEMPLATES 👑 ----------------
 AVAILABLE_TEMPLATES = {
-    # ---------------- RESUME (15) ----------------
+    
+    "modern-pro": {
+        "label": "Modern Professional", "category": "resume", "layout": "sidebar_left",
+        "accent": (194, 65, 12), "font": "Helvetica", "title_style": "plain", "header_align": "left", "is_premium": True,
+        "description": "Clean two-column layout with left contact/skills sidebar and main area."
+    },
+    "corporate-exec": {
+        "label": "Corporate Executive", "category": "resume", "layout": "single",
+        "accent": (30, 41, 59), "font": "Times", "title_style": "boxed", "header_align": "center", "is_premium": True,
+        "description": "Single-column corporate layout with executive serif typography."
+    },
+    "modern-photo": {
+        "label": "Modern Photo Resume", "category": "resume", "layout": "photo_header",
+        "accent": (37, 99, 235), "font": "Helvetica", "title_style": "underline", "header_align": "left", "is_premium": True, "supports_photo": True,
+        "description": "Prominent profile photo, header title, skills column & experience."
+    },
+    "tech-dev": {
+        "label": "Technical Developer", "category": "resume", "layout": "tech_dev",
+        "accent": (5, 150, 105), "font": "Courier", "title_style": "plain", "header_align": "left", "is_premium": True,
+        "description": "Optimized for software/AI students. Tech stack & projects prioritized."
+    },
+    "creative-pro": {
+        "label": "Creative Professional", "category": "resume", "layout": "creative_pro",
+        "accent": (124, 58, 237), "font": "Helvetica", "title_style": "underline", "header_align": "left", "is_premium": True, "supports_photo": True,
+        "description": "Modern visual hierarchy, elegant section styling and accent branding."
+    },
+    "academic-cv-pro": {
+        "label": "Academic / CV", "category": "cv", "layout": "single",
+        "accent": (67, 56, 202), "font": "Times", "title_style": "underline", "header_align": "left", "is_premium": True,
+        "description": "Designed for research, education, publications, and certifications."
+    },
+    "minimal-ats-pro": {
+        "label": "Minimal ATS Professional", "category": "resume", "layout": "compact",
+        "accent": (15, 23, 42), "font": "Helvetica", "title_style": "plain", "header_align": "left", "is_premium": True,
+        "description": "Ultra-clean single column with high ATS parsing accuracy."
+    },
+    "elegant-two-col": {
+        "label": "Elegant Two Column", "category": "resume", "layout": "sidebar_right",
+        "accent": (180, 83, 9), "font": "Times", "title_style": "plain", "header_align": "left", "is_premium": True,
+        "description": "Balanced right sidebar with main content experience hierarchy."
+    },
+    "fresher-pro": {
+        "label": "Fresher Professional", "category": "resume", "layout": "fresher_pro",
+        "accent": (2, 132, 199), "font": "Helvetica", "title_style": "underline", "header_align": "left", "is_premium": True,
+        "description": "B.Tech & college student layout emphasizing projects & education."
+    },
+    "executive-sidebar": {
+        "label": "Executive Sidebar", "category": "resume", "layout": "executive_sidebar",
+        "accent": (15, 23, 42), "font": "Helvetica", "title_style": "boxed", "header_align": "left", "is_premium": True, "supports_photo": True,
+        "description": "Dark styled executive sidebar with photo frame & contact info."
+    },
+
+    # ---------------- STANDARD FREE RESUME (15) ----------------
     "minimal": {
         "label": "Minimal", "category": "resume", "layout": "single",
         "accent": (30, 30, 30), "font": "Helvetica", "title_style": "underline", "header_align": "left",

@@ -78,10 +78,10 @@ inventing facts about the candidate.
             })
         return {
             "personal": {
-                "name": pers.get("name", "Asha Rao"),
-                "email": pers.get("email", "asha.rao@example.com"),
-                "phone": pers.get("phone", "+91 90000 00000"),
-                "location": pers.get("location", "Hyderabad, India"),
+                "name": pers.get("name", ""),
+                "email": pers.get("email", ""),
+                "phone": pers.get("phone", ""),
+                "location": pers.get("location", ""),
                 "linkedin": pers.get("linkedin", ""),
                 "portfolio": pers.get("portfolio", "")
             },

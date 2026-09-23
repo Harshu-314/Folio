@@ -1620,20 +1620,26 @@ body {
 .chat-input-row button { flex-shrink: 0; }
 
 /* VIEW 5: PRICING PAGE */
-.pricing-container { max-width: 900px; margin: 60px auto; padding: 0 20px; }
+.pricing-container { max-width: 1100px; margin: 50px auto; padding: 0 20px; }
 .pricing-header { text-align: center; margin-bottom: 40px; }
 .pricing-header h2 { font-family: var(--font-serif); font-size: 2.4rem; margin-top: 12px; }
 
-.pricing-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.pricing-cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: stretch; }
+@media (max-width: 900px) {
+  .pricing-cards-grid { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; }
+}
 .pricing-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  padding: 36px;
+  padding: 30px 24px;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .pricing-card.featured { border-color: var(--primary); box-shadow: var(--shadow-card); }
+.pricing-card.best-value { border-color: #10B981; box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.15); }
 .featured-badge {
   position: absolute;
   top: -12px;
@@ -1642,15 +1648,30 @@ body {
   color: #FFF;
   font-size: 0.7rem;
   font-weight: 700;
-  padding: 2px 10px;
-  border-radius: 10px;
+  padding: 3px 12px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+}
+.best-value-badge {
+  position: absolute;
+  top: -12px;
+  right: 24px;
+  background-color: #10B981;
+  color: #FFF;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
 }
 
-.card-tier { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 700; }
-.card-price { font-size: 2.4rem; font-weight: 700; margin: 12px 0 4px; }
-.card-price span { font-size: 0.9rem; font-weight: 400; color: var(--text-subtle); }
-.tier-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px; }
-.tier-features { list-style: none; margin-bottom: 32px; font-size: 0.9rem; display: flex; flex-direction: column; gap: 10px; }
+.card-tier { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 700; }
+.card-price { font-size: 2.2rem; font-weight: 700; margin: 12px 0 4px; }
+.card-price span { font-size: 0.85rem; font-weight: 400; color: var(--text-subtle); }
+.card-subtext { font-size: 0.8rem; color: #10B981; font-weight: 600; margin-bottom: 12px; }
+.tier-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
+.tier-features { list-style: none; margin-bottom: 24px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
 
 /* MODALS */
 .modal-overlay {
@@ -1703,9 +1724,9 @@ body {
    PAYMENT CHECKOUT & RECEIPT MODALS
    ========================================================================== */
 .payment-checkout-card {
-  width: 720px;
+  width: 620px;
   max-width: 95vw;
-  max-height: 90vh;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -1799,59 +1820,20 @@ body {
 }
 
 .checkout-body {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--bg-surface);
-}
-
-.payment-tabs {
-  background: var(--bg-subtle);
-  border-right: 1px solid var(--border-light);
-  padding: 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-}
-
-.pay-tab {
-  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  transition: var(--transition-fast);
-}
-
-.pay-tab:hover {
-  background: rgba(28, 25, 23, 0.04);
-  color: var(--text-main);
-}
-
-.pay-tab.active {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--bg-surface);
-  color: var(--primary);
-  font-weight: 700;
-  border-color: var(--border-light);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  padding: 20px 24px;
 }
 
 .payment-panels {
-  padding: 24px 28px;
-  position: relative;
-  overflow-y: auto;
-  flex: 1;
-  max-height: calc(90vh - 120px);
+  width: 100%;
+  max-width: 540px;
+  padding: 0;
 }
 
 .pay-form-panel {
@@ -2694,11 +2676,12 @@ body {
 }
 
 .modal-card.modal-lg {
-  max-width: 720px;
-  max-height: 88vh;
+  max-width: 780px;
+  width: 95vw;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
-  padding: 24px 28px;
+  padding: 24px 32px;
 }
 
 .modal-form-flex {
@@ -2712,11 +2695,84 @@ body {
 .modal-body.modal-grid-2 {
   flex: 1;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 10px;
   margin-right: -6px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  gap: 16px;
+}
+
+.modal-grid-2 .form-group input,
+.modal-grid-2 .form-group select,
+.modal-grid-2 .form-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  transition: var(--transition-fast);
+}
+
+.modal-grid-2 .form-group input:focus,
+.modal-grid-2 .form-group select:focus,
+.modal-grid-2 .form-group textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.15);
+}
+
+/* Photo Upload Box */
+.photo-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--bg-subtle);
+  border: 1px dashed var(--primary-border);
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+.photo-preview-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary);
+  background: var(--bg-surface);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+
+.photo-upload-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.photo-upload-controls .btn-upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary);
+  color: #FFF;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.photo-upload-controls .btn-upload-label:hover {
+  background: var(--primary-hover);
+}
+
+.photo-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .modal-accounts {
@@ -2731,8 +2787,8 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--primary);
-  margin-top: 10px;
-  padding-bottom: 4px;
+  margin-top: 14px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -2749,6 +2805,79 @@ body {
   margin-top: 16px;
   border-top: 1px solid var(--border-light);
   flex-shrink: 0;
+}
+
+/* Stacked Multi-Page Paper Cards */
+.multi-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+}
+
+.paper-page-card {
+  width: 210mm;
+  min-height: 297mm;
+  background: #FFF;
+  box-shadow: var(--shadow-paper);
+  border-radius: 4px;
+  padding: 20mm 18mm;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.page-badge-footer {
+  position: absolute;
+  bottom: 8px;
+  right: 18mm;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+}
+
+/* Premium Badge Pill for Template Cards */
+.tpl-badge-premium {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  color: #92400E;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid #FCD34D;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tpl-badge-free {
+  background: #E0F2FE;
+  color: #0369A1;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid #BAE6FD;
+}
+
+/* Custom Section Repeater Styles */
+.custom-sec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-subtle);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 12px;
+}
+
+.custom-sec-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 @media (max-width: 768px) {
