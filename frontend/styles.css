@@ -1230,16 +1230,46 @@ body {
   justify-content: center;
 }
 
-/* A4 Paper Rendering Sheet */
+/* Holds one or more separate A4 page sheets, stacked with a visible gap
+   between them so multi-page resumes read as distinct pages rather than
+   one continuous canvas. Zoom is applied to this whole stack. */
+.a4-pages-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  transition: var(--transition-fast);
+  transform-origin: top center;
+}
+
+.a4-page-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.a4-page-badge {
+  margin-top: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-subtle);
+}
+
+/* A4 Paper Rendering Sheet: one fixed-size printable page. Content that
+   doesn't fit is paginated into additional sheets by renderPaperCanvas()
+   rather than overflowing, so each sheet is a true, bounded A4 page. */
 .a4-paper-sheet {
   width: 210mm;
-  min-height: 297mm;
+  height: 297mm;
+  overflow: hidden;
   background-color: var(--bg-paper);
   box-shadow: var(--shadow-paper);
   padding: 20mm 18mm;
   color: #1A1A1A;
+  box-sizing: border-box;
   transition: var(--transition-fast);
-  transform-origin: top center;
 }
 
 /* Paper Templates Formatting */
@@ -1308,13 +1338,15 @@ body {
 .a4-paper-sheet.layout-sidebar-right {
   padding: 0;
 }
-.paper-columns { display: flex; min-height: 297mm; }
+.paper-columns { display: flex; height: 100%; }
 .paper-sidebar {
   width: 33%;
   background: var(--tpl-accent);
   color: #fff;
   padding: 20mm 14px 20mm 18mm;
   box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
 }
 .layout-sidebar-right .paper-sidebar { padding: 20mm 18mm 20mm 14px; }
 .paper-sidebar .paper-name { color: #fff; font-size: 1.35rem; }
@@ -1328,6 +1360,8 @@ body {
   padding: 20mm 18mm;
   box-sizing: border-box;
   min-width: 0;
+  height: 100%;
+  overflow: hidden;
 }
 .paper-main .paper-section-title { color: var(--tpl-accent); }
 
@@ -2434,6 +2468,8 @@ body {
 }
 
 .avatar-circle {
+  position: relative;
+  overflow: hidden;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -2445,6 +2481,16 @@ body {
   align-items: center;
   justify-content: center;
   letter-spacing: 0.5px;
+}
+
+/* Actual uploaded profile photo, layered over the initials avatar circles */
+.avatar-photo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .profile-container {
@@ -2473,6 +2519,8 @@ body {
 }
 
 .profile-avatar-large {
+  position: relative;
+  overflow: hidden;
   width: 72px;
   height: 72px;
   border-radius: 50%;
@@ -2906,4 +2954,58 @@ body {
 }
 
 
+/* ==========================================================================
+   Premium photo templates: on-screen paper preview
+   ========================================================================== */
+.paper-photo {
+  width: 30mm; height: 30mm; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+  display: block; border: 2px solid var(--tpl-accent); background: #fff; box-sizing: border-box;
+}
+.paper-photo-initials {
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.6rem;
+  color: var(--tpl-accent); background: color-mix(in srgb, var(--tpl-accent) 15%, #fff);
+}
+.paper-header.has-photo { display: flex; align-items: center; gap: 14px; }
+.paper-header-text { min-width: 0; flex: 1; }
+.paper-sidebar .paper-photo { margin: 0 auto 12px; width: 28mm; height: 28mm; }
 
+/* photo_header (Modern Photo): light tinted side column */
+.a4-paper-sheet.layout-photo-header, .a4-paper-sheet.layout-executive-sidebar { padding: 0; }
+.a4-paper-sheet.layout-photo-header .paper-sidebar { background: color-mix(in srgb, var(--tpl-accent) 9%, #fff); color: #1f2937; }
+.a4-paper-sheet.layout-photo-header .paper-sidebar .paper-name { color: var(--tpl-accent); text-align: center; }
+.a4-paper-sheet.layout-photo-header .paper-sidebar .paper-contact { color: #4b5563; align-items: center; }
+.a4-paper-sheet.layout-photo-header .sidebar-block-title { color: var(--tpl-accent); border-bottom: 1px solid var(--tpl-accent); padding-bottom: 2px; }
+
+/* executive_sidebar: dark panel with coral accents */
+.a4-paper-sheet.layout-executive-sidebar .paper-photo { border-color: #f06c58; }
+.a4-paper-sheet.layout-executive-sidebar .paper-photo-initials { color: #fff; background: #334155; }
+.a4-paper-sheet.layout-executive-sidebar .paper-sidebar .paper-name { text-align: center; }
+.a4-paper-sheet.layout-executive-sidebar .paper-sidebar .paper-contact { align-items: center; }
+.a4-paper-sheet.layout-executive-sidebar .sidebar-block-title { color: #f06c58; border-bottom: 1px solid #f06c58; padding-bottom: 2px; }
+
+/* creative_pro: colour banner with photo on the right */
+.a4-paper-sheet.layout-creative-pro { padding-top: 0; }
+.a4-paper-sheet.layout-creative-pro .paper-header { background: var(--tpl-accent); margin: 0 -18mm 16px -18mm; padding: 12mm 18mm; }
+.a4-paper-sheet.layout-creative-pro .paper-header .paper-name,
+.a4-paper-sheet.layout-creative-pro .paper-header .paper-contact { color: #fff; }
+.a4-paper-sheet.layout-creative-pro .paper-header .paper-photo { order: 2; border-color: #fff; }
+
+/* fresher_pro: tinted header, boxed section bars */
+.a4-paper-sheet.layout-fresher-pro { padding-top: 0; }
+.a4-paper-sheet.layout-fresher-pro .paper-header {
+  background: color-mix(in srgb, var(--tpl-accent) 12%, #fff); border-bottom: 3px solid var(--tpl-accent);
+  margin: 0 -18mm 16px -18mm; padding: 12mm 18mm 10px;
+}
+.a4-paper-sheet.layout-fresher-pro .paper-header .paper-photo { order: 2; }
+.a4-paper-sheet.layout-fresher-pro .paper-section-title {
+  background: var(--tpl-accent); color: #fff; border-bottom: none; padding: 5px 10px; border-radius: 2px;
+}
+
+/* tech_dev: terminal header, "// section" titles */
+.a4-paper-sheet.layout-tech-dev { padding-top: 0; }
+.a4-paper-sheet.layout-tech-dev .paper-header { background: #111827; margin: 0 -18mm 16px -18mm; padding: 12mm 18mm 12px; }
+.a4-paper-sheet.layout-tech-dev .paper-header .paper-name { color: #fff; }
+.a4-paper-sheet.layout-tech-dev .paper-header .paper-name::before { content: '> '; color: #34d399; }
+.a4-paper-sheet.layout-tech-dev .paper-header .paper-contact { color: #9ca3af; }
+.a4-paper-sheet.layout-tech-dev .paper-section-title { border-bottom: none; text-transform: lowercase; }
+.a4-paper-sheet.layout-tech-dev .paper-section-title::before { content: '// '; }

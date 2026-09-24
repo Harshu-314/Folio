@@ -21,7 +21,7 @@ def download_resume_pdf(resume_id):
     if not resume:
         return error_response("Resume not found.", 404)
 
-    pdf_bytes = generate_resume_pdf(resume.get_content(), resume.template_id)
+    pdf_bytes = generate_resume_pdf(resume.get_content(include_photo=True), resume.template_id)
     filename = f"{(resume.title or 'resume').strip().replace(' ', '_')}.pdf"
 
     return send_file(

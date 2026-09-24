@@ -31,13 +31,27 @@ class Resume(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def get_content(self):
+    def get_content(self, include_photo=False):
+        """Resume content dict.
+
+        The profile photo (a base64 data-URI stored under content["photo"]) is
+        left out by default so it never leaks into ATS scoring or AI prompts.
+        Pass include_photo=True for the editor, PDF export and re-saving.
+        """
         try:
-            return json.loads(self.content_json or "{}")
+            content = json.loads(self.content_json or "{}")
         except json.JSONDecodeError:
             return {}
+        if not include_photo and isinstance(content, dict):
+            content.pop("photo", None)
+        return content
 
     def set_content(self, content: dict):
+        # Accept only a reasonably small image data-URI as the photo; drop anything else.
+        if isinstance(content, dict) and "photo" in content:
+            photo = content.get("photo")
+            if not (isinstance(photo, str) and photo.startswith("data:image/") and len(photo) <= 600_000):
+                content = {k: v for k, v in content.items() if k != "photo"}
         self.content_json = json.dumps(content)
 
     def get_ats_feedback(self):
@@ -64,5 +78,5 @@ class Resume(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
         if include_content:
-            data["content"] = self.get_content()
+            data["content"] = self.get_content(include_photo=True)
         return data

@@ -156,7 +156,7 @@ function populateTemplateSelect(select) {
     items.forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.id;
-      opt.textContent = t.label;
+      opt.textContent = (t.is_premium ? '👑 ' : '') + t.label;
       optgroup.appendChild(opt);
     });
     select.appendChild(optgroup);
@@ -296,6 +296,7 @@ function updateUserInterface() {
     if (profileTab) profileTab.style.display = 'inline-block';
     if (nameLbl) nameLbl.textContent = displayName;
     if (avatarInitials) avatarInitials.textContent = getUserInitials(displayName);
+    applyAvatarPhoto('user-avatar-photo', 'user-avatar-initials', getProfilePhoto());
 
     // 1. Dashboard Greeting with actual user's name
     if (dashGreeting) {
@@ -1305,6 +1306,12 @@ function updateWizardSummaryReview() {
 }
 
 async function submitAiWizard() {
+  const wizTpl = state.templatesById[(document.getElementById('wiz-template-select') || {}).value];
+  if (wizTpl && wizTpl.is_premium && !(state.user && state.user.plan === 'premium')) {
+    showToast(`👑 ${wizTpl.label} is a Premium template. Upgrade to use it.`, 'info');
+    switchView('view-pricing');
+    return;
+  }
   const loadingBox = document.getElementById('wiz-ai-loading');
   if (loadingBox) loadingBox.style.display = 'block';
 
@@ -1376,6 +1383,7 @@ async function submitAiWizard() {
 
 // --- SPLIT-PANE RESUME STUDIO EDITOR ---
 function initStudioEditor() {
+  initStudioPhoto();
   // Title inline change
   const titleInput = document.getElementById('studio-resume-title');
   if (titleInput) {
@@ -1389,6 +1397,13 @@ function initStudioEditor() {
   const tplSelect = document.getElementById('studio-template-select');
   if (tplSelect) {
     tplSelect.addEventListener('change', (e) => {
+      const chosenTpl = state.templatesById[e.target.value];
+      if (chosenTpl && chosenTpl.is_premium && !(state.user && state.user.plan === 'premium')) {
+        e.target.value = state.activeTemplate || 'minimal';
+        showToast(`👑 ${chosenTpl.label} is a Premium template. Upgrade to unlock it.`, 'info');
+        switchView('view-pricing');
+        return;
+      }
       state.activeTemplate = e.target.value;
       state.resumeData.template_id = e.target.value;
       renderPaperCanvas();
@@ -1548,6 +1563,16 @@ function renderStudioFormValues() {
   // Target Job
   setValueIfElem('ed-target-title', state.resumeData.target_job_title);
   setValueIfElem('ed-target-jd', state.resumeData.target_job_description);
+
+  // Photo (auto-use the saved profile photo the first time, unless the user removed it)
+  if (state.resumeData.content && !c.photo && !c.photo_declined) {
+    const savedProfilePhoto = getProfilePhoto();
+    if (savedProfilePhoto) {
+      state.resumeData.content.photo = savedProfilePhoto;
+      if (state.activeResumeId) triggerAutoSave();
+    }
+  }
+  syncStudioPhotoUI();
 
   // Repeaters
   renderExperienceRepeater();
@@ -1882,34 +1907,214 @@ function paperAllCvSectionsHtml(c, skipKeys = []) {
     .join('');
 }
 
+// --- A4 PAGE FLOW: per-item HTML for repeatable entries, used to build
+// pagination "blocks" below (kept separate from paperExperienceHtml etc.
+// so those whole-section helpers are untouched). ---
+function paperExperienceItemHtml(exp) {
+  return `
+    <div class="paper-item">
+      <div class="paper-item-header">
+        <span>${exp.role || ''} — ${exp.company || ''}</span>
+        <span>${exp.duration || ''}</span>
+      </div>
+      ${exp.bullets && exp.bullets.length > 0 ? `
+        <ul class="paper-bullets">
+          ${exp.bullets.filter(Boolean).map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      ` : ''}
+    </div>
+  `;
+}
+
+function paperProjectItemHtml(proj) {
+  return `
+    <div class="paper-item">
+      <div class="paper-item-header">
+        <span>${proj.name || ''}</span>
+        ${proj.tech_stack && proj.tech_stack.length > 0 ? `<span style="font-size:0.8rem; font-style:italic;">${proj.tech_stack.join(', ')}</span>` : ''}
+      </div>
+      ${proj.description ? `<p style="font-size:0.85rem;">${proj.description}</p>` : ''}
+      ${proj.bullets && proj.bullets.length > 0 ? `
+        <ul class="paper-bullets">
+          ${proj.bullets.filter(Boolean).map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      ` : ''}
+    </div>
+  `;
+}
+
+function paperEducationItemHtml(edu) {
+  return `
+    <div class="paper-item">
+      <div class="paper-item-header">
+        <span>${edu.degree || ''}</span>
+        <span>${edu.duration || ''}</span>
+      </div>
+      <div class="paper-item-sub">
+        <span>${edu.institution || ''}</span>
+        <span>${edu.details || ''}</span>
+      </div>
+    </div>
+  `;
+}
+
+// Pushes one block per repeater entry, keeping the section title glued to
+// only the first entry so a title never ends up alone at a page bottom.
+function pushRepeaterFlowBlocks(blocks, items, title, itemHtmlFn) {
+  if (!items || items.length === 0) return;
+  items.forEach((item, idx) => {
+    const itemHtml = itemHtmlFn(item);
+    blocks.push(idx === 0 ? paperSectionHtml(title, itemHtml) : `<div class="paper-section paper-section-continued">${itemHtml}</div>`);
+  });
+}
+
+// Ordered, self-contained HTML blocks for the single-column layouts.
+// Each entry is one top-level element so it can be measured and placed
+// on a page independently by paginateFlowBlocks().
+function buildMainFlowBlocks(c, headerHtml) {
+  const blocks = [headerHtml];
+  if (c.summary) {
+    blocks.push(paperSectionHtml('Professional Summary', `<p class="paper-summary" style="font-size:0.85rem; line-height:1.4;">${c.summary}</p>`));
+  }
+  pushRepeaterFlowBlocks(blocks, c.experience, 'Experience', paperExperienceItemHtml);
+  pushRepeaterFlowBlocks(blocks, c.projects, 'Projects', paperProjectItemHtml);
+  pushRepeaterFlowBlocks(blocks, c.education, 'Education', paperEducationItemHtml);
+  if (c.skills && c.skills.length > 0) blocks.push(paperSkillsHtml(c));
+  if (c.certifications && c.certifications.length > 0) blocks.push(paperCertificationsHtml(c));
+  CV_SECTIONS_META.forEach(([key, title]) => {
+    const block = paperCvSectionHtml(c, key, title);
+    if (block) blocks.push(block);
+  });
+  return blocks;
+}
+
+// Same flow, for the two-column sidebar layouts. Education is shown in
+// the (repeating) sidebar itself, so it's left out of the main flow here.
+function buildSidebarMainFlowBlocks(c) {
+  const blocks = [];
+  if (c.summary) {
+    blocks.push(paperSectionHtml('Professional Summary', `<p class="paper-summary" style="font-size:0.85rem; line-height:1.4;">${c.summary}</p>`));
+  }
+  pushRepeaterFlowBlocks(blocks, c.experience, 'Experience', paperExperienceItemHtml);
+  pushRepeaterFlowBlocks(blocks, c.projects, 'Projects', paperProjectItemHtml);
+  CV_SECTIONS_META.forEach(([key, title]) => {
+    if (key === 'affiliations') return;
+    const block = paperCvSectionHtml(c, key, title);
+    if (block) blocks.push(block);
+  });
+  return blocks;
+}
+
+let _mmToPxRatio = null;
+function mmToPx(mm) {
+  if (_mmToPxRatio === null) {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute; visibility:hidden; left:-99999px; top:0; height:100mm; width:1px;';
+    document.body.appendChild(probe);
+    _mmToPxRatio = probe.getBoundingClientRect().height / 100;
+    document.body.removeChild(probe);
+  }
+  return mm * _mmToPxRatio;
+}
+
+function getMeasureSandbox() {
+  let el = document.getElementById('paper-measure-sandbox');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'paper-measure-sandbox';
+    el.style.cssText = 'position:absolute; visibility:hidden; left:-99999px; top:0; pointer-events:none; width:210mm;';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+// Splits `blocks` (an array of self-contained top-level HTML strings) into
+// pages that each fit inside one printable A4 page. Renders them off-screen
+// inside `shellHtml` (which must contain an element marked
+// data-flow-target="1" for single-column shells, that IS the shell itself)
+// and reads back real layout positions so the split matches true rendering,
+// fonts, and template spacing.
+function paginateFlowBlocks(blocks, sheetClassName, styleVars, shellHtml) {
+  const nonEmpty = blocks.filter(Boolean);
+  if (nonEmpty.length === 0) return [[]];
+
+  const budgetPx = mmToPx(257); // 297mm page minus 20mm top/bottom padding
+  const sandbox = getMeasureSandbox();
+  sandbox.className = sheetClassName;
+  sandbox.style.height = 'auto';
+  sandbox.style.overflow = 'visible';
+  Object.keys(styleVars).forEach(k => sandbox.style.setProperty(k, styleVars[k]));
+  sandbox.innerHTML = shellHtml;
+  const target = sandbox.querySelector('[data-flow-target]') || sandbox;
+  target.innerHTML = nonEmpty.join('');
+
+  const children = Array.from(target.children);
+  const positions = children.map(el => ({
+    top: el.offsetTop,
+    bottom: el.offsetTop + el.getBoundingClientRect().height
+  }));
+  sandbox.innerHTML = '';
+
+  const pages = [];
+  let currentPage = [];
+  let pageStartTop = null;
+  positions.forEach((pos, i) => {
+    if (pageStartTop === null) pageStartTop = pos.top;
+    const relBottom = pos.bottom - pageStartTop;
+    if (relBottom > budgetPx && currentPage.length > 0) {
+      pages.push(currentPage);
+      currentPage = [i];
+      pageStartTop = pos.top;
+    } else {
+      currentPage.push(i);
+    }
+  });
+  if (currentPage.length > 0) pages.push(currentPage);
+
+  return pages.map(idxArr => idxArr.map(i => nonEmpty[i]));
+}
+
 function renderPaperCanvas() {
-  const canvas = document.getElementById('paper-render-canvas');
-  if (!canvas) return;
+  const container = document.getElementById('paper-render-canvas');
+  if (!container) return;
 
   const templateId = state.activeTemplate || 'minimal';
   const tpl = state.templatesById[templateId] || { layout: 'single', accent: '#1E1E1E', font: 'Helvetica', category: 'resume' };
   const layout = tpl.layout || 'single';
 
-  canvas.className = `a4-paper-sheet layout-${layout.replace('_', '-')} title-${tpl.title_style || 'underline'} header-${tpl.header_align || 'left'}`;
-  canvas.style.setProperty('--tpl-accent', tpl.accent || '#1E1E1E');
-  canvas.style.setProperty('--tpl-font', tpl.font === 'Times' ? "'Newsreader', Georgia, serif" : (tpl.font === 'Courier' ? "'Courier New', monospace" : "Inter, Arial, sans-serif"));
+  const sheetClassName = `a4-paper-sheet layout-${layout.replace('_', '-')} title-${tpl.title_style || 'underline'} header-${tpl.header_align || 'left'}`;
+  const styleVars = {
+    '--tpl-accent': tpl.accent || '#1E1E1E',
+    '--tpl-font': tpl.font === 'Times' ? "'Newsreader', Georgia, serif" : (tpl.font === 'Courier' ? "'Courier New', monospace" : "Inter, Arial, sans-serif")
+  };
 
   const c = state.resumeData.content || {};
   const p = c.personal || {};
   const contactBits = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
 
+  const photoLayouts = ['photo_header', 'creative_pro', 'executive_sidebar', 'fresher_pro'];
+  const photoHtml = (tpl.supports_photo || photoLayouts.includes(layout)) ? paperPhotoHtml(c, p) : '';
+
   const headerHtml = `
-    <div class="paper-header">
-      <h1 class="paper-name">${p.name || 'Your Name'}</h1>
-      <div class="paper-contact">
-        ${contactBits.map(b => `<span>${b}</span>`).join(' • ')}
+    <div class="paper-header${photoHtml ? ' has-photo' : ''}">
+      ${photoHtml}
+      <div class="paper-header-text">
+        <h1 class="paper-name">${p.name || 'Your Name'}</h1>
+        <div class="paper-contact">
+          ${contactBits.map(b => `<span>${b}</span>`).join(' • ')}
+        </div>
       </div>
     </div>
   `;
 
-  if (layout === 'sidebar_left' || layout === 'sidebar_right') {
+  const isColumns = ['sidebar_left', 'sidebar_right', 'photo_header', 'executive_sidebar'].includes(layout);
+
+  let pagesHtml;
+
+  if (isColumns) {
     const sidebarHtml = `
       <div class="paper-sidebar">
+        ${photoHtml}
         <h1 class="paper-name">${p.name || 'Your Name'}</h1>
         <div class="paper-contact">${contactBits.map(b => `<div>${b}</div>`).join('')}</div>
         ${c.skills && c.skills.length > 0 ? `<div class="sidebar-block"><div class="sidebar-block-title">Skills</div><p>${c.skills.join(', ')}</p></div>` : ''}
@@ -1918,29 +2123,189 @@ function renderPaperCanvas() {
         ${c.affiliations && c.affiliations.length > 0 ? `<div class="sidebar-block"><div class="sidebar-block-title">Affiliations</div><ul>${c.affiliations.map(x => `<li>${typeof x === 'string' ? x : (x.title || x.name || '')}</li>`).join('')}</ul></div>` : ''}
       </div>
     `;
-    const mainHtml = `
-      <div class="paper-main">
-        ${paperSummaryHtml(c)}
-        ${paperExperienceHtml(c)}
-        ${paperProjectsHtml(c)}
-        ${paperAllCvSectionsHtml(c, ['affiliations'])}
-      </div>
-    `;
-    const order = layout === 'sidebar_left' ? [sidebarHtml, mainHtml] : [mainHtml, sidebarHtml];
-    canvas.innerHTML = `<div class="paper-columns">${order.join('')}</div>`;
-    return;
+
+    const mainBlocks = buildSidebarMainFlowBlocks(c);
+    const shellHtml = `<div class="paper-columns">${sidebarHtml}<div class="paper-main" data-flow-target="1"></div></div>`;
+    const pages = paginateFlowBlocks(mainBlocks, sheetClassName, styleVars, shellHtml);
+
+    pagesHtml = pages.map(pageBlocks => {
+      const mainHtml = `<div class="paper-main">${pageBlocks.join('')}</div>`;
+      const order = layout === 'sidebar_right' ? [mainHtml, sidebarHtml] : [sidebarHtml, mainHtml];
+      return `<div class="paper-columns">${order.join('')}</div>`;
+    });
+  } else {
+    const mainBlocks = buildMainFlowBlocks(c, headerHtml);
+    const pages = paginateFlowBlocks(mainBlocks, sheetClassName, styleVars, `<div data-flow-target="1"></div>`);
+    pagesHtml = pages.map(pageBlocks => pageBlocks.join(''));
   }
 
-  let html = headerHtml;
-  html += paperSummaryHtml(c);
-  html += paperExperienceHtml(c);
-  html += paperProjectsHtml(c);
-  html += paperEducationHtml(c);
-  html += paperSkillsHtml(c);
-  html += paperCertificationsHtml(c);
-  html += paperAllCvSectionsHtml(c);
+  container.innerHTML = pagesHtml.map((innerHtml, idx) => `
+    <div class="a4-page-wrap">
+      <div class="${sheetClassName}" style="--tpl-accent:${styleVars['--tpl-accent']}; --tpl-font:${styleVars['--tpl-font']};">
+        ${innerHtml}
+      </div>
+      <div class="a4-page-badge">Page ${idx + 1} of ${pagesHtml.length}</div>
+    </div>
+  `).join('');
+}
 
-  canvas.innerHTML = html;
+// --- PHOTO UPLOAD (resume photo + profile photo) ---
+const PHOTO_MAX_FILE_BYTES = 8 * 1024 * 1024;
+
+// Reads an image file, centre-crops it to a square and returns a small JPEG data-URI.
+function readPhotoFile(file, size = 360) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      return reject(new Error('Please choose an image file (JPG, PNG or WEBP).'));
+    }
+    if (file.size > PHOTO_MAX_FILE_BYTES) {
+      return reject(new Error('Image is too large. Please choose a photo under 8 MB.'));
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const sx = (img.naturalWidth - side) / 2;
+        const sy = (img.naturalHeight - side) / 4;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      } catch (err) {
+        reject(new Error('Could not process this image.'));
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not read this image. Please try a JPG or PNG file.'));
+    };
+    img.src = url;
+  });
+}
+
+function profilePhotoKey() {
+  return `folio_profile_photo_${(state.user && state.user.id) || 'guest'}`;
+}
+function getProfilePhoto() {
+  try { return localStorage.getItem(profilePhotoKey()) || ''; } catch (e) { return ''; }
+}
+function setProfilePhoto(dataUrl) {
+  try {
+    if (dataUrl) localStorage.setItem(profilePhotoKey(), dataUrl);
+    else localStorage.removeItem(profilePhotoKey());
+  } catch (e) { /* storage full or blocked */ }
+}
+
+function setPhotoPreview(imgId, placeholderId, removeId, dataUrl) {
+  const img = document.getElementById(imgId);
+  const ph = document.getElementById(placeholderId);
+  const rm = document.getElementById(removeId);
+  const has = !!(dataUrl && String(dataUrl).startsWith('data:image/'));
+  if (img) { img.src = has ? dataUrl : ''; img.style.display = has ? 'block' : 'none'; }
+  if (ph) ph.style.display = has ? 'none' : 'flex';
+  if (rm) rm.style.display = has ? '' : 'none';
+}
+function syncStudioPhotoUI() {
+  const c = (state.resumeData && state.resumeData.content) || {};
+  setPhotoPreview('studio-photo-preview', 'studio-photo-placeholder', 'btn-remove-studio-photo', c.photo);
+}
+function syncProfilePhotoUI() {
+  setPhotoPreview('edit-photo-preview', 'edit-photo-placeholder', 'btn-remove-profile-photo', getProfilePhoto());
+  // Keep the account-menu avatar and the "My Profile" avatar showing the
+  // real saved photo (not just initials) as soon as it changes.
+  applyAvatarPhoto('user-avatar-photo', 'user-avatar-initials', getProfilePhoto());
+  applyAvatarPhoto('prof-avatar-photo', 'prof-avatar-text', getProfilePhoto());
+}
+
+// Shows `dataUrl` in the avatar <img> (imgId) and hides the initials
+// fallback (initialsId) beneath it, or the reverse when there's no photo.
+function applyAvatarPhoto(imgId, initialsId, dataUrl) {
+  const img = document.getElementById(imgId);
+  const initials = document.getElementById(initialsId);
+  const has = !!(dataUrl && String(dataUrl).startsWith('data:image/'));
+  if (img) { img.src = has ? dataUrl : ''; img.style.display = has ? 'block' : 'none'; }
+  if (initials) initials.style.visibility = has ? 'hidden' : 'visible';
+}
+
+function initStudioPhoto() {
+  const input = document.getElementById('studio-photo-file-input');
+  const btnRemove = document.getElementById('btn-remove-studio-photo');
+
+  if (input) {
+    input.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = ''; // lets the same file be picked again later
+      if (!file) return;
+      try {
+        const dataUrl = await readPhotoFile(file);
+        if (!state.resumeData.content) state.resumeData.content = {};
+        state.resumeData.content.photo = dataUrl;
+        delete state.resumeData.content.photo_declined;
+        syncStudioPhotoUI();
+        renderPaperCanvas();
+        triggerAutoSave();
+        showToast('Photo added to your resume.', 'success');
+      } catch (err) {
+        showToast(err.message || 'Photo upload failed.', 'error');
+      }
+    });
+  }
+
+  if (btnRemove) {
+    btnRemove.addEventListener('click', () => {
+      if (!state.resumeData.content) return;
+      delete state.resumeData.content.photo;
+      state.resumeData.content.photo_declined = true;
+      syncStudioPhotoUI();
+      renderPaperCanvas();
+      triggerAutoSave();
+      showToast('Photo removed from this resume.', 'info');
+    });
+  }
+}
+
+function initProfilePhoto() {
+  const input = document.getElementById('edit-photo-file-input');
+  const btnRemove = document.getElementById('btn-remove-profile-photo');
+
+  if (input) {
+    input.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        setProfilePhoto(await readPhotoFile(file));
+        syncProfilePhotoUI();
+        showToast('Profile photo saved on this device. It is used by photo resume templates.', 'success');
+      } catch (err) {
+        showToast(err.message || 'Photo upload failed.', 'error');
+      }
+    });
+  }
+
+  if (btnRemove) {
+    btnRemove.addEventListener('click', () => {
+      setProfilePhoto('');
+      syncProfilePhotoUI();
+      showToast('Profile photo removed.', 'info');
+    });
+  }
+}
+
+function paperPhotoHtml(c, p) {
+  if (c.photo && String(c.photo).startsWith('data:image/')) {
+    return `<img class="paper-photo" src="${c.photo}" alt="Profile photo">`;
+  }
+  const initials = ((p.name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('') || '?')
+    .toUpperCase().replace(/[<>&"']/g, '');
+  return `<div class="paper-photo paper-photo-initials">${initials}</div>`;
 }
 
 // --- AUTOSAVE ENGINE ---
@@ -2551,6 +2916,28 @@ function initPricing() {
     btnPrintReceipt.addEventListener('click', () => window.print());
   }
 
+  // UPI VPA verification (format check)
+  const btnVerifyUpi = document.getElementById('btn-verify-upi');
+  const upiInput = document.getElementById('pay-upi-id');
+  const upiVerifiedBadge = document.getElementById('upi-verified-badge');
+
+  if (btnVerifyUpi && upiInput) {
+    btnVerifyUpi.addEventListener('click', () => {
+      const val = upiInput.value.trim();
+      const isValid = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(val);
+      if (isValid) {
+        if (upiVerifiedBadge) {
+          upiVerifiedBadge.style.display = 'block';
+          upiVerifiedBadge.textContent = `✓ Valid UPI ID (${val})`;
+        }
+        showToast('UPI ID format looks valid. Complete the payment using the QR code above.', 'success');
+      } else {
+        if (upiVerifiedBadge) upiVerifiedBadge.style.display = 'none';
+        showToast('Please enter a valid UPI format (e.g. name@okaxis, mobile@paytm)', 'error');
+      }
+    });
+  }
+
   // UPI Payment Form Submission
   const upiForm = document.getElementById('form-pay-upi');
   if (upiForm) {
@@ -2829,6 +3216,7 @@ function renderUserProfile(user, stats = {}) {
   const authProvider = document.getElementById('prof-auth-provider');
 
   if (avatarText) avatarText.textContent = initials;
+  applyAvatarPhoto('prof-avatar-photo', 'prof-avatar-text', getProfilePhoto());
   if (fullName) fullName.textContent = name;
   if (headline) headline.textContent = user.headline || 'Professional Headline Not Set';
   if (email) email.textContent = user.email || '';
@@ -2898,6 +3286,7 @@ function updateAccountStatusElement(containerId, isConnected, provider) {
 }
 
 function initProfile() {
+  initProfilePhoto();
   const btnAvatar = document.getElementById('btn-user-profile-avatar');
   const btnOpenEdit = document.getElementById('btn-open-edit-profile');
   const modalEdit = document.getElementById('modal-edit-profile');
@@ -2975,5 +3364,6 @@ function populateEditProfileForm() {
 
   updateAccountStatusElement('edit-status-google', !!user.google_connected, 'google');
   updateAccountStatusElement('edit-status-github', !!user.github_connected, 'github');
+  syncProfilePhotoUI();
 }
 

@@ -89,7 +89,7 @@ def update_resume(resume_id):
     if "content" in data:
         resume.set_content(data["content"])
     else:
-        content = resume.get_content()
+        content = resume.get_content(include_photo=True)
         for field in [
             "summary",
             "education",

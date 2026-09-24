@@ -63,7 +63,10 @@
 
       <div id="auth-logged-in" class="user-profile-menu" style="display:none;">
         <button class="user-avatar-btn" id="btn-user-profile-avatar" title="Open My Profile">
-          <span class="avatar-circle" id="user-avatar-initials">AD</span>
+          <span class="avatar-circle">
+            <img src="" id="user-avatar-photo" class="avatar-photo-img" style="display:none;" alt="">
+            <span id="user-avatar-initials">AD</span>
+          </span>
           <span class="user-greeting" id="user-display-name">Alex Dev</span>
         </button>
         <button class="btn btn-secondary btn-sm" id="btn-open-upgrade">Upgrade to Premium</button>
@@ -722,8 +725,8 @@
 
             <!-- Scrollable Paper Container -->
             <div class="paper-scroll-wrapper">
-              <div class="a4-paper-sheet minimal" id="paper-render-canvas">
-                <!-- Live HTML Preview Rendered via JS -->
+              <div class="a4-pages-container" id="paper-render-canvas">
+                <!-- Live paginated A4 pages rendered via JS -->
               </div>
             </div>
           </div>
@@ -998,6 +1001,7 @@
         <div class="profile-header-card">
           <div class="profile-header-main">
             <div class="profile-avatar-large" id="prof-avatar-circle">
+              <img src="" id="prof-avatar-photo" class="avatar-photo-img" style="display:none;" alt="">
               <span id="prof-avatar-text">AD</span>
             </div>
             <div class="profile-identity">
@@ -1320,6 +1324,17 @@
               <span>Submit Payment for Verification</span>
               <span class="lock-icon">🔒</span>
             </button>
+
+            <div class="divider-text"><span>OR ENTER VPA FOR DIRECT UPI CHECKOUT</span></div>
+
+            <div class="form-group">
+              <label for="pay-upi-id">Virtual Payment Address (VPA)</label>
+              <div class="upi-input-group">
+                <input type="text" id="pay-upi-id" placeholder="username@upi / mobile@okhdfcbank">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-verify-upi">Verify VPA</button>
+              </div>
+              <span class="upi-verified-badge" id="upi-verified-badge" style="display: none;">✓ UPI ID Verified</span>
+            </div>
           </form>
         </div>
       </div>

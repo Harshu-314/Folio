@@ -25,6 +25,8 @@ def list_templates():
             "font": val["font"],
             "title_style": val["title_style"],
             "header_align": val["header_align"],
+            "is_premium": bool(val.get("is_premium", False)),
+            "supports_photo": bool(val.get("supports_photo", False)),
             "cover_image": f"/images/templates/{key}_cover.svg",
             "section_image": f"/images/templates/{key}_section.svg",
         }

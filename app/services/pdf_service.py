@@ -35,9 +35,8 @@ MARGIN = 18
 # title_style: "underline" | "boxed" | "plain"  (section title decoration)
 # header_align: "left" | "center"  (name/header alignment, single/timeline layouts)
 
-    # ---------------- 10 STRUCTURAL PREMIUM TEMPLATES 👑 ----------------
 AVAILABLE_TEMPLATES = {
-    
+    # ---------------- 10 STRUCTURAL PREMIUM TEMPLATES 👑 ----------------
     "modern-pro": {
         "label": "Modern Professional", "category": "resume", "layout": "sidebar_left",
         "accent": (194, 65, 12), "font": "Helvetica", "title_style": "plain", "header_align": "left", "is_premium": True,
@@ -225,9 +224,16 @@ class ResumePDF(FPDF):
         self.font_family = template["font"]
         self.set_auto_page_break(auto=True, margin=15)
         self.set_margins(MARGIN, 15, MARGIN)
+        # Optional hooks used by the premium designer layouts.
+        self.page_decor = None            # callable(pdf) drawn at the start of every page
+        self.title_style_override = None  # overrides template["title_style"] when set
+
+    def header(self):
+        if self.page_decor:
+            self.page_decor(self)
 
     def section_title(self, title, x=None, width=None):
-        style = self.template["title_style"]
+        style = self.title_style_override or self.template["title_style"]
         x = self.l_margin if x is None else x
         width = (PAGE_W - self.l_margin - self.r_margin) if width is None else width
         self.set_x(x)
@@ -239,6 +245,11 @@ class ResumePDF(FPDF):
             self.set_x(x)
             self.cell(width, 7, "  " + title.upper(), fill=True, ln=1)
             self.set_text_color(20, 20, 20)
+        elif style == "code":
+            self.set_text_color(*self.accent)
+            self.set_x(x)
+            self.cell(width, 6.5, "// " + title.lower(), ln=1)
+            self.ln(1)
         else:
             self.set_text_color(*self.accent)
             self.set_x(x)
@@ -580,6 +591,361 @@ def _layout_sidebar(pdf, content, template, side):
         _render_cv_list_section(pdf, content, key, cv_titles[key], main_x, main_w)
 
 
+# ---------------------------------------------------------------------------
+# Premium designer layouts (photo header, creative, executive, fresher, tech)
+# ---------------------------------------------------------------------------
+def _tint(rgb, t):
+    """Blend an RGB colour towards white by t (0..1)."""
+    return tuple(int(c + (255 - c) * t) for c in rgb)
+
+
+def _contact_list(personal):
+    return [str(b) for b in (
+        personal.get("email"), personal.get("phone"), personal.get("location"),
+        personal.get("linkedin"), personal.get("portfolio"),
+    ) if b]
+
+
+def _photo_png(content, px=320):
+    """Decode content['photo'] (data-URI) into a circular-cropped PNG buffer, or None."""
+    raw = (content or {}).get("photo")
+    if not isinstance(raw, str) or not raw.startswith("data:image/") or "," not in raw:
+        return None
+    try:
+        import base64
+        import io
+        from PIL import Image, ImageDraw
+
+        img = Image.open(io.BytesIO(base64.b64decode(raw.split(",", 1)[1]))).convert("RGB")
+        w, h = img.size
+        side = min(w, h)
+        left, top = (w - side) // 2, (h - side) // 4  # bias crop upward so faces stay in frame
+        img = img.crop((left, top, left + side, top + side)).resize((px, px), Image.LANCZOS)
+        mask = Image.new("L", (px * 4, px * 4), 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, px * 4 - 1, px * 4 - 1), fill=255)
+        img.putalpha(mask.resize((px, px), Image.LANCZOS))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        return buf
+    except Exception:
+        return None  # a bad/corrupt photo must never break PDF generation
+
+
+def _draw_photo(pdf, content, x, y, d, template, ring=(255, 255, 255),
+                fallback_fill=None, initials_rgb=None):
+    """Circular profile photo; falls back to an initials disc when no photo is set."""
+    buf = _photo_png(content)
+    if buf is not None:
+        pdf.image(buf, x=x, y=y, w=d, h=d)
+    else:
+        pdf.set_fill_color(*(fallback_fill or _tint(template["accent"], 0.8)))
+        pdf.ellipse(x, y, d, d, style="F")
+        name = (content.get("personal") or {}).get("name") or ""
+        initials = "".join(part[0] for part in name.split()[:2]).upper() or "?"
+        pdf.set_font(template["font"], "B", d * 0.55)
+        pdf.set_text_color(*(initials_rgb or template["accent"]))
+        pdf.set_xy(x, y + d * 0.3)
+        pdf.cell(d, d * 0.4, _safe(initials), align="C")
+    pdf.set_draw_color(*ring)
+    pdf.set_line_width(0.9)
+    pdf.ellipse(x, y, d, d, style="D")
+    pdf.set_text_color(20, 20, 20)
+
+
+def _chips(pdf, items, x, width, fill, text_rgb, size=8, h=5.6):
+    """Flowing rounded 'pill' tags (used for skills)."""
+    items = [str(i) for i in (items or []) if i]
+    pdf.set_font(pdf.font_family, "B", size)
+    cx, cy = x, pdf.get_y()
+    for item in items:
+        label = _safe(item)
+        while len(label) > 1 and pdf.get_string_width(label) + 5 > width:
+            label = label[:-1]
+        w = pdf.get_string_width(label) + 5
+        if cx + w > x + width + 0.01:
+            cx, cy = x, cy + h + 1.6
+        pdf.set_fill_color(*fill)
+        pdf.rect(cx, cy, w, h, style="F", round_corners=True, corner_radius=h / 2)
+        pdf.set_text_color(*text_rgb)
+        pdf.set_xy(cx, cy)
+        pdf.cell(w, h, label, align="C")
+        cx += w + 1.6
+    pdf.set_xy(x, cy + h + 2)
+    pdf.set_text_color(20, 20, 20)
+
+
+def _panel_sections(pdf, content, template, x, w, title_rgb, text_rgb, muted_rgb,
+                    chip_fill, chip_text):
+    """Skills / Education / Certifications / Affiliations stacked in a narrow column."""
+    font = template["font"]
+
+    def title(t):
+        pdf.set_xy(x, pdf.get_y() + 2)
+        pdf.set_font(font, "B", 9.5)
+        pdf.set_text_color(*title_rgb)
+        pdf.cell(w, 5.5, t.upper(), new_x="LMARGIN", new_y="NEXT")
+        pdf.set_draw_color(*title_rgb)
+        pdf.set_line_width(0.3)
+        y = pdf.get_y()
+        pdf.line(x, y, x + w, y)
+        pdf.set_y(y + 2)
+
+    if content.get("skills"):
+        title("Skills")
+        _chips(pdf, content["skills"], x, w, chip_fill, chip_text)
+
+    if content.get("education"):
+        title("Education")
+        for edu in content["education"]:
+            pdf.set_font(font, "B", 9)
+            pdf.set_text_color(*text_rgb)
+            pdf.set_x(x)
+            pdf.multi_cell(w, 4.6, _safe(edu.get("degree", "")), new_x="LEFT", new_y="NEXT")
+            pdf.set_font(font, "", 8.5)
+            pdf.set_text_color(*muted_rgb)
+            pdf.set_x(x)
+            pdf.multi_cell(w, 4.4, _safe(f"{edu.get('institution', '')}  {edu.get('duration', '')}".strip()),
+                           new_x="LEFT", new_y="NEXT")
+            pdf.ln(1.5)
+
+    for key, label in (("certifications", "Certifications"), ("affiliations", "Affiliations")):
+        entries = content.get(key)
+        if not entries:
+            continue
+        title(label)
+        pdf.set_font(font, "", 8.5)
+        pdf.set_text_color(*text_rgb)
+        for entry in entries:
+            txt = entry if isinstance(entry, str) else (entry.get("title") or entry.get("name") or "")
+            _multi(pdf, 4.6, _safe(f"- {txt}"), x=x, width=w)
+    pdf.set_text_color(20, 20, 20)
+
+
+def _render_main_column(pdf, content, template, x, w, base=("summary", "experience", "projects")):
+    for key in base:
+        SECTION_RENDERERS[key](pdf, content, x, w)
+    priority, remaining = _ordered_sections(template)
+    titles = dict(CV_SECTIONS)
+    for key in priority + remaining:
+        if key == "affiliations":  # shown in the side panel
+            continue
+        _render_cv_list_section(pdf, content, key, titles[key], x, w)
+
+
+def _layout_photo_header(pdf, content, template):
+    """Photo + name header, tinted left column (skills/education), main column right."""
+    acc = template["accent"]
+    personal = content.get("personal", {})
+    d = 34
+    side_w, gap = 50, 10
+    main_x = MARGIN + side_w + gap
+    main_w = PAGE_W - main_x - MARGIN
+    panel_w = MARGIN + side_w + 5
+    tint = _tint(acc, 0.92)
+
+    def decor(p):  # continuation pages get the full-height tinted column
+        if p.page_no() > 1:
+            p.set_fill_color(*tint)
+            p.rect(0, 0, panel_w, 297, style="F")
+
+    pdf.page_decor = decor
+    pdf.add_page()
+    _draw_photo(pdf, content, MARGIN, 12, d, template, ring=acc)
+
+    tx = MARGIN + d + 8
+    tw = PAGE_W - tx - MARGIN
+    pdf.set_xy(tx, 14)
+    pdf.set_font(template["font"], "B", 22)
+    pdf.set_text_color(*acc)
+    pdf.multi_cell(tw, 9.5, _safe(personal.get("name", "Your Name")), new_x="LEFT", new_y="NEXT")
+    role = personal.get("headline") or personal.get("title")
+    if role:
+        pdf.set_x(tx)
+        pdf.set_font(template["font"], "", 11)
+        pdf.set_text_color(60, 60, 60)
+        pdf.multi_cell(tw, 6, _safe(role), new_x="LEFT", new_y="NEXT")
+    pdf.set_font(template["font"], "", 9)
+    pdf.set_text_color(90, 90, 90)
+    for bit in _contact_list(personal):
+        pdf.set_x(tx)
+        pdf.multi_cell(tw, 4.8, _safe(bit), new_x="LEFT", new_y="NEXT")
+
+    rule_y = max(pdf.get_y(), 12 + d) + 3
+    pdf.set_draw_color(*acc)
+    pdf.set_line_width(0.9)
+    pdf.line(MARGIN, rule_y, PAGE_W - MARGIN, rule_y)
+    body_top = rule_y + 4
+    pdf.set_fill_color(*tint)
+    pdf.rect(0, body_top, panel_w, 297 - body_top, style="F")
+
+    pdf.set_y(body_top)
+    _panel_sections(pdf, content, template, MARGIN, side_w, title_rgb=acc, text_rgb=(30, 30, 30),
+                    muted_rgb=(90, 90, 90), chip_fill=(255, 255, 255), chip_text=acc)
+    pdf.set_xy(main_x, body_top - 2)
+    _render_main_column(pdf, content, template, main_x, main_w)
+
+
+def _layout_creative_pro(pdf, content, template):
+    """Full-width colour banner with photo, main column left, tinted panel right."""
+    acc = template["accent"]
+    personal = content.get("personal", {})
+    band_h, d = 50, 34
+    side_w, gap = 52, 8
+    main_x = MARGIN
+    main_w = PAGE_W - 2 * MARGIN - side_w - gap
+    side_x = main_x + main_w + gap
+    panel_x = side_x - 5
+    tint = _tint(acc, 0.93)
+
+    def decor(p):
+        if p.page_no() > 1:
+            p.set_fill_color(*tint)
+            p.rect(panel_x, 0, PAGE_W - panel_x, 297, style="F")
+
+    pdf.page_decor = decor
+    pdf.add_page()
+    pdf.set_fill_color(*acc)
+    pdf.rect(0, 0, PAGE_W, band_h, style="F")
+    pdf.set_fill_color(*tint)
+    pdf.rect(panel_x, band_h, PAGE_W - panel_x, 297 - band_h, style="F")
+    _draw_photo(pdf, content, PAGE_W - MARGIN - d, 8, d, template, ring=(255, 255, 255),
+                fallback_fill=_tint(acc, 0.85))
+
+    tw = PAGE_W - 2 * MARGIN - d - 6
+    pdf.set_xy(MARGIN, 12)
+    pdf.set_font(template["font"], "B", 22)
+    pdf.set_text_color(255, 255, 255)
+    pdf.multi_cell(tw, 9.5, _safe(personal.get("name", "Your Name")), new_x="LEFT", new_y="NEXT")
+    pdf.ln(1)
+    pdf.set_x(MARGIN)
+    pdf.set_font(template["font"], "", 9)
+    pdf.set_text_color(*_tint(acc, 0.85))
+    pdf.multi_cell(tw, 4.8, _safe("  |  ".join(_contact_list(personal))), align="L", new_x="LEFT", new_y="NEXT")
+
+    pdf.set_y(band_h + 2)
+    _panel_sections(pdf, content, template, side_x, side_w, title_rgb=acc, text_rgb=(30, 30, 30),
+                    muted_rgb=(90, 90, 90), chip_fill=(255, 255, 255), chip_text=acc)
+    pdf.set_xy(main_x, band_h - 2)
+    _render_main_column(pdf, content, template, main_x, main_w)
+
+
+def _layout_executive_sidebar(pdf, content, template):
+    """Dark full-height left panel with photo, coral accents, main column right."""
+    navy = template["accent"]
+    coral = (240, 108, 88)
+    personal = content.get("personal", {})
+    panel_w, pad, d = 70, 9, 38
+    side_x, side_w = pad, panel_w - 2 * pad
+    main_x = panel_w + 10
+    main_w = PAGE_W - main_x - 14
+
+    def decor(p):
+        p.set_fill_color(*navy)
+        p.rect(0, 0, panel_w, 297, style="F")
+
+    pdf.page_decor = decor
+    pdf.add_page()
+    _draw_photo(pdf, content, (panel_w - d) / 2, 14, d, template, ring=coral,
+                fallback_fill=(51, 65, 85), initials_rgb=(255, 255, 255))
+
+    pdf.set_xy(side_x, 14 + d + 6)
+    pdf.set_font(template["font"], "B", 14)
+    pdf.set_text_color(255, 255, 255)
+    pdf.multi_cell(side_w, 6.5, _safe(personal.get("name", "Your Name")), align="C",
+                   new_x="LEFT", new_y="NEXT")
+    pdf.ln(2)
+    pdf.set_font(template["font"], "", 8)
+    pdf.set_text_color(203, 213, 225)
+    for bit in _contact_list(personal):
+        pdf.set_x(side_x)
+        pdf.multi_cell(side_w, 4.4, _safe(bit), align="C", new_x="LEFT", new_y="NEXT")
+
+    _panel_sections(pdf, content, template, side_x, side_w, title_rgb=coral, text_rgb=(255, 255, 255),
+                    muted_rgb=(203, 213, 225), chip_fill=coral, chip_text=(255, 255, 255))
+    pdf.set_xy(main_x, 13)
+    _render_main_column(pdf, content, template, main_x, main_w)
+
+
+def _layout_fresher_pro(pdf, content, template):
+    """Fresher-friendly: photo header band, boxed section bars, education & projects first."""
+    acc = template["accent"]
+    personal = content.get("personal", {})
+    full_w = PAGE_W - 2 * MARGIN
+    band_h, d = 46, 32
+    pdf.add_page()
+    pdf.set_fill_color(*_tint(acc, 0.88))
+    pdf.rect(0, 0, PAGE_W, band_h, style="F")
+    pdf.set_fill_color(*acc)
+    pdf.rect(0, band_h, PAGE_W, 1.6, style="F")
+    _draw_photo(pdf, content, PAGE_W - MARGIN - d, 7, d, template, ring=(255, 255, 255))
+
+    tw = full_w - d - 6
+    pdf.set_xy(MARGIN, 11)
+    pdf.set_font(template["font"], "B", 22)
+    pdf.set_text_color(*acc)
+    pdf.multi_cell(tw, 9.5, _safe(personal.get("name", "Your Name")), new_x="LEFT", new_y="NEXT")
+    pdf.ln(1)
+    pdf.set_x(MARGIN)
+    pdf.set_font(template["font"], "", 9)
+    pdf.set_text_color(70, 70, 70)
+    pdf.multi_cell(tw, 4.8, _safe("  |  ".join(_contact_list(personal))), align="L", new_x="LEFT", new_y="NEXT")
+
+    pdf.set_y(band_h + 4)
+    pdf.title_style_override = "boxed"
+    for key in ("summary", "education", "projects"):
+        SECTION_RENDERERS[key](pdf, content, MARGIN, full_w)
+    if content.get("skills"):
+        pdf.section_title("Skills", x=MARGIN, width=full_w)
+        pdf.ln(1)
+        _chips(pdf, content["skills"], MARGIN, full_w, _tint(acc, 0.85), acc)
+    _render_experience(pdf, content, MARGIN, full_w)
+    _render_certifications(pdf, content, MARGIN, full_w)
+    priority, remaining = _ordered_sections(template)
+    titles = dict(CV_SECTIONS)
+    for key in priority + remaining:
+        _render_cv_list_section(pdf, content, key, titles[key], MARGIN, full_w)
+
+
+def _layout_tech_dev(pdf, content, template):
+    """Developer look: dark terminal header, monospace, '// section' titles, projects first."""
+    acc = template["accent"]
+    glow = (52, 211, 153)
+    personal = content.get("personal", {})
+    full_w = PAGE_W - 2 * MARGIN
+    pdf.add_page()
+    pdf.set_fill_color(17, 24, 39)
+    pdf.rect(0, 0, PAGE_W, 40, style="F")
+
+    name = _safe(personal.get("name", "Your Name"))
+    pdf.set_xy(MARGIN, 11)
+    pdf.set_font("Courier", "B", 18 if len(name) <= 30 else 13)
+    pdf.set_text_color(*glow)
+    prompt_w = pdf.get_string_width("> ")
+    pdf.cell(prompt_w, 9, "> ")
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(full_w - prompt_w, 9, name, new_x="LMARGIN", new_y="NEXT")
+    pdf.set_x(MARGIN)
+    pdf.set_font("Courier", "", 8.5)
+    pdf.set_text_color(156, 163, 175)
+    pdf.multi_cell(full_w, 4.8, _safe("  |  ".join(_contact_list(personal))), align="L", new_x="LEFT", new_y="NEXT")
+
+    pdf.set_y(46)
+    pdf.title_style_override = "code"
+    _render_summary(pdf, content, MARGIN, full_w)
+    if content.get("skills"):
+        pdf.section_title("Skills", x=MARGIN, width=full_w)
+        _chips(pdf, content["skills"], MARGIN, full_w, _tint(acc, 0.88), (6, 95, 70))
+    _render_projects(pdf, content, MARGIN, full_w)
+    _render_experience(pdf, content, MARGIN, full_w)
+    _render_education(pdf, content, MARGIN, full_w)
+    _render_certifications(pdf, content, MARGIN, full_w)
+    priority, remaining = _ordered_sections(template)
+    titles = dict(CV_SECTIONS)
+    for key in priority + remaining:
+        _render_cv_list_section(pdf, content, key, titles[key], MARGIN, full_w)
+
+
 LAYOUT_ENGINES = {
     "single": _layout_single,
     "compact": _layout_compact,
@@ -587,6 +953,11 @@ LAYOUT_ENGINES = {
     "timeline": _layout_timeline,
     "sidebar_left": lambda pdf, content, template: _layout_sidebar(pdf, content, template, "left"),
     "sidebar_right": lambda pdf, content, template: _layout_sidebar(pdf, content, template, "right"),
+    "photo_header": _layout_photo_header,
+    "creative_pro": _layout_creative_pro,
+    "executive_sidebar": _layout_executive_sidebar,
+    "fresher_pro": _layout_fresher_pro,
+    "tech_dev": _layout_tech_dev,
 }
 
 
