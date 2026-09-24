@@ -1493,10 +1493,12 @@ function initStudioEditor() {
   const btnAddExp = document.getElementById('btn-add-experience');
   const btnAddProj = document.getElementById('btn-add-project');
   const btnAddEdu = document.getElementById('btn-add-education');
+  const btnAddCustomSection = document.getElementById('btn-add-custom-section');
 
   if (btnAddExp) btnAddExp.addEventListener('click', addExperienceItem);
   if (btnAddProj) btnAddProj.addEventListener('click', addProjectItem);
   if (btnAddEdu) btnAddEdu.addEventListener('click', addEducationItem);
+  if (btnAddCustomSection) btnAddCustomSection.addEventListener('click', addCustomSection);
 }
 
 function updateStateValueByPath(path, value) {
@@ -1578,6 +1580,7 @@ function renderStudioFormValues() {
   renderExperienceRepeater();
   renderProjectsRepeater();
   renderEducationRepeater();
+  renderCustomSectionsRepeater();
 }
 
 function setValueIfElem(id, val) {
@@ -1804,6 +1807,89 @@ function updateEduField(idx, field, val) {
   triggerAutoSave();
 }
 
+// Custom Sections Repeater
+function renderCustomSectionsRepeater() {
+  const container = document.getElementById('custom-sections-container');
+  if (!container) return;
+
+  const sections = state.resumeData.content.custom_sections || [];
+  if (sections.length === 0) {
+    container.innerHTML = `<p class="field-hint" style="font-size:0.8rem; color:var(--text-muted);">No custom sections yet. Click "+ Add Custom Section" above to add one.</p>`;
+    return;
+  }
+
+  container.innerHTML = sections.map((sec, idx) => `
+    <div class="repeater-card">
+      <div class="repeater-card-header">
+        <span class="repeater-card-title">${sec.title || `Custom Section #${idx + 1}`}</span>
+        <button class="btn btn-ghost btn-xs" onclick="removeCustomSection(${idx})">Remove</button>
+      </div>
+      <div class="form-group">
+        <label>Section Heading</label>
+        <input type="text" value="${sec.title || ''}" placeholder="e.g. Key Achievements" oninput="updateCustomSectionField(${idx}, 'title', this.value)">
+      </div>
+      <div class="form-group margin-top">
+        <label>Bullet Points</label>
+        ${(sec.items && sec.items.length > 0 ? sec.items : ['']).map((item, iIdx) => `
+          <div class="bullet-input-row">
+            <textarea rows="2" oninput="updateCustomSectionItem(${idx}, ${iIdx}, this.value)">${item}</textarea>
+            <button class="btn btn-ghost btn-xs" onclick="removeCustomSectionItem(${idx}, ${iIdx})" title="Remove line">✕</button>
+          </div>
+        `).join('')}
+        <button class="btn btn-ghost btn-xs margin-top" onclick="addCustomSectionItem(${idx})">+ Add Line</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addCustomSection() {
+  if (!state.resumeData.content.custom_sections) state.resumeData.content.custom_sections = [];
+  state.resumeData.content.custom_sections.push({
+    title: 'Key Achievements',
+    items: ['']
+  });
+  renderCustomSectionsRepeater();
+  renderPaperCanvas();
+  triggerAutoSave();
+}
+
+function removeCustomSection(idx) {
+  state.resumeData.content.custom_sections.splice(idx, 1);
+  renderCustomSectionsRepeater();
+  renderPaperCanvas();
+  triggerAutoSave();
+}
+
+function updateCustomSectionField(idx, field, val) {
+  state.resumeData.content.custom_sections[idx][field] = val;
+  renderPaperCanvas();
+  triggerAutoSave();
+  // Card title label reflects the heading as you type without a full re-render.
+  const header = document.querySelectorAll('#custom-sections-container .repeater-card-title')[idx];
+  if (header && field === 'title') header.textContent = val || `Custom Section #${idx + 1}`;
+}
+
+function updateCustomSectionItem(secIdx, itemIdx, val) {
+  state.resumeData.content.custom_sections[secIdx].items[itemIdx] = val;
+  renderPaperCanvas();
+  triggerAutoSave();
+}
+
+function addCustomSectionItem(secIdx) {
+  state.resumeData.content.custom_sections[secIdx].items.push('');
+  renderCustomSectionsRepeater();
+}
+
+function removeCustomSectionItem(secIdx, itemIdx) {
+  state.resumeData.content.custom_sections[secIdx].items.splice(itemIdx, 1);
+  if (state.resumeData.content.custom_sections[secIdx].items.length === 0) {
+    state.resumeData.content.custom_sections[secIdx].items.push('');
+  }
+  renderCustomSectionsRepeater();
+  renderPaperCanvas();
+  triggerAutoSave();
+}
+
 // --- LIVE TACTILE PAPER CANVAS RENDERER ---
 // Mirrors app/services/pdf_service.py: same 5 layout engines (single,
 // compact, banner, timeline, sidebar_left/right), same accent/font/
@@ -1958,6 +2044,20 @@ function paperEducationItemHtml(edu) {
   `;
 }
 
+function paperCustomSectionItemHtml(item) {
+  return `<ul class="paper-bullets"><li>${item}</li></ul>`;
+}
+
+// Pushes one block per non-empty custom section, reusing the same
+// title-glued-to-first-item pattern as Experience/Projects/Education.
+function pushCustomSectionFlowBlocks(blocks, customSections) {
+  (customSections || []).forEach(sec => {
+    const items = (sec.items || []).filter(Boolean);
+    if (items.length === 0) return;
+    pushRepeaterFlowBlocks(blocks, items, sec.title || 'Custom Section', paperCustomSectionItemHtml);
+  });
+}
+
 // Pushes one block per repeater entry, keeping the section title glued to
 // only the first entry so a title never ends up alone at a page bottom.
 function pushRepeaterFlowBlocks(blocks, items, title, itemHtmlFn) {
@@ -1985,6 +2085,7 @@ function buildMainFlowBlocks(c, headerHtml) {
     const block = paperCvSectionHtml(c, key, title);
     if (block) blocks.push(block);
   });
+  pushCustomSectionFlowBlocks(blocks, c.custom_sections);
   return blocks;
 }
 
@@ -2002,6 +2103,7 @@ function buildSidebarMainFlowBlocks(c) {
     const block = paperCvSectionHtml(c, key, title);
     if (block) blocks.push(block);
   });
+  pushCustomSectionFlowBlocks(blocks, c.custom_sections);
   return blocks;
 }
 

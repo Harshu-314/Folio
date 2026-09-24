@@ -383,6 +383,21 @@ def _render_cv_list_section(pdf, content, key, title, x, width):
     pdf.ln(1)
 
 
+def _render_custom_sections(pdf, content, x, width):
+    """User-added custom sections (a heading plus bullet lines), always
+    rendered last. A no-op when the resume has none, so it never changes
+    output for resumes that don't use the feature."""
+    for sec in content.get("custom_sections") or []:
+        if not isinstance(sec, dict):
+            continue
+        items = [i for i in (sec.get("items") or []) if i]
+        if not items:
+            continue
+        pdf.section_title(_safe(sec.get("title") or "Custom Section"), x=x, width=width)
+        pdf.set_font(pdf.font_family, "", 10)
+        _bullet_list(pdf, items, x=x, width=width)
+
+
 SECTION_RENDERERS = {
     "summary": _render_summary,
     "experience": _render_experience,
@@ -437,6 +452,7 @@ def _render_body_sections(pdf, content, template, x, width, include_base=None, i
     cv_keys = priority + remaining if include_cv is None else include_cv
     for key in cv_keys:
         _render_cv_list_section(pdf, content, key, cv_titles[key], x, width)
+    _render_custom_sections(pdf, content, x, width)
 
 
 def _layout_single(pdf, content, template):
@@ -500,6 +516,7 @@ def _layout_timeline(pdf, content, template):
     cv_titles = dict(CV_SECTIONS)
     for key in priority + remaining:
         _render_cv_list_section(pdf, content, key, cv_titles[key], MARGIN, full_w)
+    _render_custom_sections(pdf, content, MARGIN, full_w)
 
 
 def _sidebar_columns(side):
@@ -589,6 +606,7 @@ def _layout_sidebar(pdf, content, template, side):
         if key in skip:
             continue
         _render_cv_list_section(pdf, content, key, cv_titles[key], main_x, main_w)
+    _render_custom_sections(pdf, content, main_x, main_w)
 
 
 # ---------------------------------------------------------------------------
@@ -731,6 +749,7 @@ def _render_main_column(pdf, content, template, x, w, base=("summary", "experien
         if key == "affiliations":  # shown in the side panel
             continue
         _render_cv_list_section(pdf, content, key, titles[key], x, w)
+    _render_custom_sections(pdf, content, x, w)
 
 
 def _layout_photo_header(pdf, content, template):
@@ -905,6 +924,7 @@ def _layout_fresher_pro(pdf, content, template):
     titles = dict(CV_SECTIONS)
     for key in priority + remaining:
         _render_cv_list_section(pdf, content, key, titles[key], MARGIN, full_w)
+    _render_custom_sections(pdf, content, MARGIN, full_w)
 
 
 def _layout_tech_dev(pdf, content, template):
@@ -944,6 +964,7 @@ def _layout_tech_dev(pdf, content, template):
     titles = dict(CV_SECTIONS)
     for key in priority + remaining:
         _render_cv_list_section(pdf, content, key, titles[key], MARGIN, full_w)
+    _render_custom_sections(pdf, content, MARGIN, full_w)
 
 
 LAYOUT_ENGINES = {
