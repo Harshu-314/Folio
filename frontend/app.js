@@ -40,7 +40,9 @@ const state = {
   pendingVerificationEmail: null,  // set between register/blocked-login and a completed /verify-email
   zoomLevel: 100,
   saveTimeout: null,
-  isSaving: false,
+  isSaving: false,       // true while a save PUT request is in flight
+  saveDirty: false,      // true when there are edits not yet confirmed saved
+  saveQueuedAgain: false, // an edit arrived while isSaving was true
   wizardStep: 1,
 
   // AI Recruiter Assistant chat - kept in-memory for the current session only
@@ -486,6 +488,11 @@ function switchView(viewId, options = {}) {
   // so clicking the same nav tab twice doesn't pile up duplicate entries.
   if (pushState && viewId !== currentView) {
     history.pushState({ folioView: viewId }, '', `#${viewId}`);
+  }
+
+  if (currentView === 'view-studio' && viewId !== 'view-studio') {
+    // Leaving the editor — don't leave the last debounced edit stranded.
+    flushAutoSave();
   }
 
   if (viewId === 'view-dashboard') {
@@ -1437,6 +1444,11 @@ function initStudioEditor() {
   // Back button
   const btnBack = document.getElementById('btn-studio-back');
   if (btnBack) btnBack.addEventListener('click', () => switchView('view-dashboard'));
+
+  // Manual Save Button — lets the user force a save immediately, e.g. if
+  // autosave silently failed (offline, expired session, etc.).
+  const btnManualSave = document.getElementById('btn-manual-save');
+  if (btnManualSave) btnManualSave.addEventListener('click', manualSaveResume);
 
   // PDF Download Button
   const btnPdf = document.getElementById('btn-studio-pdf-download');
@@ -2411,34 +2423,128 @@ function paperPhotoHtml(c, p) {
 }
 
 // --- AUTOSAVE ENGINE ---
-function triggerAutoSave() {
+// Debounced, single-flight autosave: typing schedules one save ~700ms after
+// the last change (well within the 500-1000ms window), a save already in
+// flight is never duplicated, and any edits that land while a save is in
+// progress are queued into exactly one follow-up save instead of being
+// dropped or firing a second overlapping request.
+const AUTOSAVE_DEBOUNCE_MS = 700;
+
+function setSaveBadge(status) {
   const badge = document.getElementById('studio-save-status');
-  if (badge) {
+  if (!badge) return;
+  if (status === 'saving') {
     badge.textContent = 'Saving...';
     badge.className = 'save-status-badge saving';
+  } else if (status === 'saved') {
+    badge.textContent = 'Saved';
+    badge.className = 'save-status-badge saved';
+  } else if (status === 'error') {
+    badge.textContent = 'Save failed — retrying';
+    badge.className = 'save-status-badge error';
   }
+}
+
+function triggerAutoSave() {
+  setSaveBadge('saving');
+  state.saveDirty = true;
 
   if (state.saveTimeout) clearTimeout(state.saveTimeout);
+  state.saveTimeout = setTimeout(runAutoSave, AUTOSAVE_DEBOUNCE_MS);
+}
 
-  state.saveTimeout = setTimeout(async () => {
-    if (!state.activeResumeId || !state.token) return;
+// Sends the current resume state to the API. Safe to call directly (e.g. to
+// flush a pending save before navigating away) as well as from the debounce
+// timer above.
+async function runAutoSave() {
+  state.saveTimeout = null;
 
-    const payload = {
-      title: state.resumeData.title,
-      template_id: state.activeTemplate,
-      target_job_title: state.resumeData.target_job_title,
-      target_job_description: state.resumeData.target_job_description,
-      content: state.resumeData.content
-    };
+  if (!state.activeResumeId || !state.token) return;
 
+  if (state.isSaving) {
+    // A save is already on the wire — don't fire a duplicate request.
+    // The in-flight save's `finally` block below will pick this up.
+    state.saveQueuedAgain = true;
+    return;
+  }
+
+  if (!state.saveDirty) return; // nothing changed since the last successful save
+
+  state.isSaving = true;
+  state.saveDirty = false;
+
+  const payload = {
+    title: state.resumeData.title,
+    template_id: state.activeTemplate,
+    target_job_title: state.resumeData.target_job_title,
+    target_job_description: state.resumeData.target_job_description,
+    content: state.resumeData.content
+  };
+
+  try {
     const res = await apiCall(`/resumes/${state.activeResumeId}`, 'PUT', payload);
     if (res && res.success) {
-      if (badge) {
-        badge.textContent = 'Saved';
-        badge.className = 'save-status-badge saved';
-      }
+      setSaveBadge('saved');
+    } else {
+      // Nothing is lost — state.resumeData still holds every edit — but
+      // don't leave the badge stuck on "Saving..." when it actually failed.
+      setSaveBadge('error');
+      state.saveDirty = true;
     }
-  }, 1200);
+  } catch (err) {
+    setSaveBadge('error');
+    state.saveDirty = true;
+  } finally {
+    state.isSaving = false;
+    if (state.saveQueuedAgain || state.saveDirty) {
+      state.saveQueuedAgain = false;
+      setSaveBadge('saving');
+      if (state.saveTimeout) clearTimeout(state.saveTimeout); // cancel any stray pending timer
+      state.saveTimeout = setTimeout(runAutoSave, 300);
+    }
+  }
+}
+
+// Immediately saves any pending debounced change (e.g. right before leaving
+// the Studio) instead of leaving it to fire on its own a moment later.
+function flushAutoSave() {
+  if (!state.saveTimeout && !state.saveDirty) return;
+  if (state.saveTimeout) {
+    clearTimeout(state.saveTimeout);
+    state.saveTimeout = null;
+  }
+  runAutoSave();
+}
+
+// Manual "Save" button: a deliberate, user-triggered save for when
+// autosave didn't go through (offline, expired session, etc.). Forces a
+// real save attempt even if nothing looks "dirty", and gives explicit
+// success/failure feedback via a toast rather than relying only on the
+// small status badge.
+async function manualSaveResume() {
+  if (!state.activeResumeId || !state.token) {
+    showToast('Nothing to save yet — open or create a resume first.', 'info');
+    return;
+  }
+
+  if (state.saveTimeout) {
+    clearTimeout(state.saveTimeout);
+    state.saveTimeout = null;
+  }
+  state.saveDirty = true;
+  setSaveBadge('saving');
+
+  await runAutoSave();
+
+  const badge = document.getElementById('studio-save-status');
+  if (badge && badge.classList.contains('saved')) {
+    showToast('Resume saved.', 'success');
+  } else if (badge && badge.classList.contains('error')) {
+    showToast('Save failed. Check your connection and try again.', 'error');
+  }
+  // If a different save was already in flight, this click just queued a
+  // follow-up (see isSaving handling in runAutoSave) — its own completion
+  // will update the badge, so no toast is shown for that in-between state.
 }
 
 // --- PDF DOWNLOAD SERVICE ---

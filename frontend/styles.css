@@ -1062,6 +1062,7 @@ body {
 
 .save-status-badge.saved { background-color: #ECFDF5; color: var(--ats-excellent); }
 .save-status-badge.saving { background-color: #FEF3C7; color: var(--ats-good); }
+.save-status-badge.error { background-color: #FEE2E2; color: var(--ats-poor, #DC2626); }
 
 .template-selector-pill {
   display: flex;
